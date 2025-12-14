@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CalendarioDisponibilidad from "@/components/CalendarioDisponibilidad";
@@ -11,8 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowRight, ArrowLeft, Calendar, Users, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowLeft, Calendar, Users, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { visitasAPI, type DisponibilidadResponse } from "@/services/api";
+import QRCode from "qrcode";
 
 type Paso = 1 | 2 | 3;
 
@@ -22,6 +24,9 @@ const Reservar = () => {
   const [selectedHora, setSelectedHora] = useState<string>("");
   const [esInstitucion, setEsInstitucion] = useState(false);
   const [codigoVisita, setCodigoVisita] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [disponibilidad, setDisponibilidad] = useState<DisponibilidadResponse | null>(null);
+  const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
 
   const [formData, setFormData] = useState({
@@ -41,8 +46,28 @@ const Reservar = () => {
     { hora: "14:00", disponible: 75, total: 100 },
   ];
 
+  // Consultar disponibilidad cuando cambia la fecha
+  useEffect(() => {
+    if (selectedDate) {
+      consultarDisponibilidad();
+    }
+  }, [selectedDate]);
+
+  const consultarDisponibilidad = async () => {
+    if (!selectedDate) return;
+    
+    try {
+      const fechaISO = selectedDate.toISOString().split('T')[0];
+      const data = await visitasAPI.consultarDisponibilidad(fechaISO);
+      setDisponibilidad(data);
+    } catch (error) {
+      console.error('Error al consultar disponibilidad:', error);
+    }
+  };
+
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
+    setSelectedHora(""); // Reset hora al cambiar fecha
   };
 
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -105,18 +130,58 @@ const Reservar = () => {
     return true;
   };
 
-  const handleContinuar = () => {
+  const handleContinuar = async () => {
     if (paso === 1 && validarPaso1()) {
       setPaso(2);
     } else if (paso === 2 && validarPaso2()) {
-      // Simular envío al backend
-      const codigo = `VIS-${format(selectedDate!, "yyyyMMdd")}-001`;
-      setCodigoVisita(codigo);
-      setPaso(3);
-      toast({
-        title: "¡Reserva Confirmada!",
-        description: "Se ha enviado un correo de confirmación",
-      });
+      setLoading(true);
+      try {
+        const fechaISO = selectedDate!.toISOString().split('T')[0];
+        
+        const response = await visitasAPI.crear({
+          fecha: fechaISO,
+          hora: selectedHora,
+          institucion: esInstitucion ? formData.institucion : undefined,
+          numVisitantes: parseInt(formData.numVisitantes),
+          arboretum: formData.arboretum as 'Si' | 'No',
+          contacto: {
+            nombre: formData.nombreContacto,
+            telefono: formData.telefono,
+            comuna: formData.comuna,
+            correo: formData.email,
+          },
+        });
+
+        setCodigoVisita(response.visita.codigoVisita);
+        setPaso(3);
+        
+        // Generar QR con el código de visita
+        setTimeout(() => {
+          if (qrCanvasRef.current) {
+            QRCode.toCanvas(qrCanvasRef.current, response.visita.codigoVisita, {
+              width: 200,
+              margin: 2,
+              color: {
+                dark: '#2C5F2D',
+                light: '#FFFFFF'
+              }
+            });
+          }
+        }, 100);
+        
+        toast({
+          title: "¡Reserva Confirmada!",
+          description: "Se ha enviado un correo de confirmación",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo crear la reserva",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -341,13 +406,22 @@ const Reservar = () => {
                 </div>
 
                 <div className="flex justify-between pt-4">
-                  <Button variant="outline" onClick={() => setPaso(1)}>
+                  <Button variant="outline" onClick={() => setPaso(1)} disabled={loading}>
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     Volver
                   </Button>
-                  <Button size="lg" onClick={handleContinuar}>
-                    Confirmar Reserva
-                    <CheckCircle2 className="ml-2 h-5 w-5" />
+                  <Button size="lg" onClick={handleContinuar} disabled={loading}>
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        Confirmar Reserva
+                        <CheckCircle2 className="ml-2 h-5 w-5" />
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
@@ -367,9 +441,17 @@ const Reservar = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="bg-muted p-6 rounded-lg">
-                  <div className="text-sm text-muted-foreground mb-2">Código de Visita</div>
-                  <div className="text-3xl font-bold font-montserrat text-primary">{codigoVisita}</div>
+                <div className="bg-muted p-6 rounded-lg space-y-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-2">Código de Visita</div>
+                    <div className="text-3xl font-bold font-montserrat text-primary">{codigoVisita}</div>
+                  </div>
+                  <div className="flex justify-center">
+                    <canvas ref={qrCanvasRef} className="border-4 border-white rounded-lg shadow-md"></canvas>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    Presenta este código QR al llegar al Centro de Visitantes
+                  </p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4 text-left">

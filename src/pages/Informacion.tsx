@@ -101,7 +101,7 @@ const Informacion = () => {
             <CardContent>
               <div className="aspect-video w-full bg-muted rounded-lg overflow-hidden">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d25349.123456789!2d-71.92!3d-37.66!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzfCsDM5JzM2LjAiUyA3McKwNTUnMTIuMCJX!5e0!3m2!1ses!2scl!4v1234567890"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d403926.45938357146!2d-71.8127746!3d-37.7272949!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x966c7a7efee6bcb7%3A0x8039199b6b22b3a8!2sCentro%20de%20Visitantes%20Colbun!5e0!3m2!1sen!2sus!4v1764196631129!5m2!1sen!2sus" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
