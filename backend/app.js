@@ -10,8 +10,15 @@ const app = express();
 app.use(helmet());
 
 // CORS - Configurado para desarrollo local
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://localhost:8081'
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || allowedOrigins,
   credentials: true
 }));
 
