@@ -72,7 +72,7 @@ const visitaSchema = new mongoose.Schema({
 
 // Índices para búsquedas eficientes
 visitaSchema.index({ fecha: 1, hora: 1 });
-visitaSchema.index({ codigoVisita: 1 });
+// visitaSchema.index({ codigoVisita: 1 });
 visitaSchema.index({ 'contacto.telefono': 1 });
 
 const Visita = mongoose.model('Visita', visitaSchema);
