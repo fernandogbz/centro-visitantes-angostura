@@ -10,11 +10,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, se } from "date-fns/locale";
 import { ArrowRight, ArrowLeft, Calendar, Users, CheckCircle2, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { visitasAPI, type DisponibilidadResponse } from "@/services/api";
 import QRCode from "qrcode";
+import { sendEmail } from "@/services/email";
 
 type Paso = 1 | 2 | 3;
 
@@ -153,6 +154,23 @@ const Reservar = () => {
         });
 
         setCodigoVisita(response.visita.codigoVisita);
+
+        // Envio correo de confirmacion 
+        try {
+        await sendEmail({
+          email: formData.email,
+          nombre: formData.nombreContacto,
+          codigoVisita: response.visita.codigoVisita,
+          fecha: format(selectedDate!, "EEEE d 'de' MMMM, yyyy", { locale: es }),
+          hora: selectedHora,
+          numVisitantes: parseInt(formData.numVisitantes),
+          arboretum: formData.arboretum,
+        });
+      } catch (emailError) {
+        console.error('Error al enviar email:', emailError);
+        // No detenemos el proceso si falla el email
+      }
+
         setPaso(3);
         
         // Generar QR con el código de visita
@@ -173,7 +191,7 @@ const Reservar = () => {
           title: "¡Reserva Confirmada!",
           description: "Se ha enviado un correo de confirmación",
         });
-      } catch (error: any) {
+      } catch (error) {
         toast({
           title: "Error",
           description: error.message || "No se pudo crear la reserva",
