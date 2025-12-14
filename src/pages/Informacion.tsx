@@ -29,7 +29,9 @@ const Informacion = () => {
                   <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                     <Clock className="h-6 w-6 text-primary" />
                   </div>
-                  <CardTitle className="font-montserrat">Horarios de Atención</CardTitle>
+                  <CardTitle className="font-montserrat">
+                    Horarios de Atención
+                  </CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -47,7 +49,8 @@ const Informacion = () => {
                 </div>
                 <div className="mt-4 p-3 bg-secondary/10 rounded-lg text-sm">
                   <p className="text-secondary-foreground">
-                    <strong>Importante:</strong> Se requiere reserva previa para todas las visitas
+                    <strong>Importante:</strong> Se requiere reserva previa para
+                    todas las visitas
                   </p>
                 </div>
               </CardContent>
@@ -67,21 +70,29 @@ const Informacion = () => {
                 <div className="flex items-start space-x-3">
                   <Phone className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-sm text-muted-foreground">Teléfono</div>
+                    <div className="text-sm text-muted-foreground">
+                      Teléfono
+                    </div>
                     <div className="font-medium">+56 9 9999 9999</div>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-sm text-muted-foreground">Correo Electrónico</div>
-                    <div className="font-medium">contacto@angosturadelbiobio.cl</div>
+                    <div className="text-sm text-muted-foreground">
+                      Correo Electrónico
+                    </div>
+                    <div className="font-medium">
+                      contacto@angosturadelbiobio.cl
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <div className="text-sm text-muted-foreground">Dirección</div>
+                    <div className="text-sm text-muted-foreground">
+                      Dirección
+                    </div>
                     <div className="font-medium">
                       Centro de Visitantes Angostura del Biobío
                       <br />
@@ -101,7 +112,7 @@ const Informacion = () => {
             <CardContent>
               <div className="aspect-video w-full bg-muted rounded-lg overflow-hidden">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d403926.45938357146!2d-71.8127746!3d-37.7272949!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x966c7a7efee6bcb7%3A0x8039199b6b22b3a8!2sCentro%20de%20Visitantes%20Colbun!5e0!3m2!1sen!2sus!4v1764196631129!5m2!1sen!2sus" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d403926.45938357146!2d-71.8127746!3d-37.7272949!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x966c7a7efee6bcb7%3A0x8039199b6b22b3a8!2sCentro%20de%20Visitantes%20Colbun!5e0!3m2!1sen!2sus!4v1764196631129!5m2!1sen!2sus"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
@@ -127,9 +138,9 @@ const Informacion = () => {
                 <div>
                   <h3 className="font-semibold text-lg mb-2">En Auto</h3>
                   <p className="text-muted-foreground mb-3">
-                    Desde Los Ángeles, toma la Ruta 180 hacia Santa Bárbara. El centro se encuentra
-                    a 35 km aproximadamente (40 minutos). Sigue las señalizaciones hacia "Embalse
-                    Angostura".
+                    Desde Los Ángeles, toma la Ruta 180 hacia Santa Bárbara. El
+                    centro se encuentra a 35 km aproximadamente (40 minutos).
+                    Sigue las señalizaciones hacia "Embalse Angostura".
                   </p>
                   <div className="p-3 bg-muted rounded-lg text-sm">
                     <strong>Estacionamiento:</strong> Disponible sin costo
@@ -142,13 +153,17 @@ const Informacion = () => {
                   <Bus className="h-6 w-6 text-secondary" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-2">En Transporte Público</h3>
+                  <h3 className="font-semibold text-lg mb-2">
+                    En Transporte Público
+                  </h3>
                   <p className="text-muted-foreground mb-3">
-                    Desde Los Ángeles, toma un bus interprovincial con destino a Santa Bárbara.
-                    Desde allí, puedes tomar un taxi o colectivo hasta el centro (15 minutos aprox).
+                    Desde Los Ángeles, toma un bus interprovincial con destino a
+                    Santa Bárbara. Desde allí, puedes tomar un taxi o colectivo
+                    hasta el centro (15 minutos aprox).
                   </p>
                   <div className="p-3 bg-muted rounded-lg text-sm">
-                    <strong>Recomendación:</strong> Coordina el transporte con anticipación
+                    <strong>Recomendación:</strong> Coordina el transporte con
+                    anticipación
                   </div>
                 </div>
               </div>
@@ -158,27 +173,36 @@ const Informacion = () => {
                   <Info className="h-6 w-6 text-accent" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg mb-2">Recomendaciones</h3>
+                  <h3 className="font-semibold text-lg mb-2">
+                    Recomendaciones
+                  </h3>
                   <ul className="space-y-2 text-muted-foreground">
                     <li className="flex items-start">
                       <span className="mr-2">•</span>
-                      <span>Llega con 10 minutos de anticipación a tu hora de reserva</span>
-                    </li>
-                    <li className="flex items-start">
-                      <span className="mr-2">•</span>
                       <span>
-                        Trae ropa cómoda y calzado adecuado para caminar (especialmente si
-                        visitarás el Arboretum)
+                        Llega con 10 minutos de anticipación a tu hora de
+                        reserva
                       </span>
                     </li>
                     <li className="flex items-start">
                       <span className="mr-2">•</span>
-                      <span>No olvides protector solar y agua, especialmente en verano</span>
+                      <span>
+                        Trae ropa cómoda y calzado adecuado para caminar
+                        (especialmente si visitarás el Arboretum)
+                      </span>
                     </li>
                     <li className="flex items-start">
                       <span className="mr-2">•</span>
                       <span>
-                        Las visitas guiadas tienen una duración aproximada de 1-2 horas
+                        No olvides protector solar y agua, especialmente en
+                        verano
+                      </span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="mr-2">•</span>
+                      <span>
+                        Las visitas guiadas tienen una duración aproximada de
+                        1-2 horas
                       </span>
                     </li>
                   </ul>
