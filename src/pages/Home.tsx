@@ -85,18 +85,18 @@ const Home = () => {
               </h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-              <Card className="text-center">
-                <CardHeader>
-                  <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                    <Clock className="h-6 w-6 text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card className="text-center flex flex-col">
+                <CardHeader className="pb-2">
+                  <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                    <Clock className="h-8 w-8 text-primary" />
                   </div>
                   <CardTitle className="font-montserrat text-xl">
                     Horarios
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
+                <CardContent className="pb-3 pt-0">
+                  <p className="text-base text-muted-foreground leading-relaxed">
                     Lun-Vie: 10:00 - 17:00
                     <br />
                     Sábado: 10:00 - 14:00
@@ -106,17 +106,17 @@ const Home = () => {
                 </CardContent>
               </Card>
 
-              <Card className="text-center">
-                <CardHeader>
-                  <div className="mx-auto w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mb-4">
-                    <MapPin className="h-6 w-6 text-secondary" />
+              <Card className="text-center flex flex-col">
+                <CardHeader className="pb-2">
+                  <div className="mx-auto w-16 h-16 bg-secondary/10 rounded-full flex items-center justify-center mb-4">
+                    <MapPin className="h-8 w-8 text-secondary" />
                   </div>
                   <CardTitle className="font-montserrat text-xl">
                     Ubicación
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
+                <CardContent className="pb-3 pt-0">
+                  <p className="text-base text-muted-foreground leading-relaxed">
                     Santa Bárbara
                     <br />
                     Región del Biobío
@@ -126,17 +126,17 @@ const Home = () => {
                 </CardContent>
               </Card>
 
-              <Card className="text-center">
-                <CardHeader>
-                  <div className="mx-auto w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center mb-4">
-                    <Users className="h-6 w-6 text-accent" />
+              <Card className="text-center flex flex-col">
+                <CardHeader className="pb-2">
+                  <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
+                    <Users className="h-8 w-8 text-accent" />
                   </div>
                   <CardTitle className="font-montserrat text-xl">
                     Visitas
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
+                <CardContent className="pb-4 pt-0">
+                  <p className="text-base text-muted-foreground leading-relaxed mb-4">
                     Entrada gratuita
                     <br />
                     Requiere reserva previa
@@ -144,30 +144,11 @@ const Home = () => {
                     Grupos hasta 100 personas
                   </p>
                   <Link to="/reservar">
-                    <Button size="sm" className="mt-2">
-                      Reservar ahora
-                    </Button>
+                    <Button size="default">Reservar ahora</Button>
                   </Link>
                 </CardContent>
               </Card>
             </div>
-          </div>
-        </section>
-
-        {/* Enlace temporal al Dashboard */}
-        <section className="container mx-auto px-4 py-16">
-          <div className="text-center mb-12">
-            <h2 className="font-montserrat font-bold text-3xl md:text-4xl mb-4">
-              Acceso Rápido
-            </h2>
-          </div>
-
-          <div className="max-w-md mx-auto">
-            <Link to="/dashboard">
-              <Button variant="outline" className="w-full">
-                Dashboard (Admin)
-              </Button>
-            </Link>
           </div>
         </section>
       </main>
