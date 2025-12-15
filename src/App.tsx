@@ -8,6 +8,7 @@ import Reservar from "./pages/Reservar";
 import Informacion from "./pages/Informacion";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
+import { AnimatedFox } from "./components/AnimatedFox";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <div className="min-h-screen">
+          <AnimatedFox />
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/reservar" element={<Reservar />} />

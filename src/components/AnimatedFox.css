@@ -1,0 +1,46 @@
+/* Contenedor que abarca toda la altura de la pantalla en el lado derecho */
+.animated-fox-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 50;
+  overflow: hidden;
+}
+
+/* El zorro que camina */
+.walking-fox {
+  position: absolute;
+  right: 10px;
+  top: -100px;
+  
+  /* Rotamos -90 grados (antihorario) para que camine hacia abajo */
+  transform: rotate(-90deg);
+  transform-origin: center;
+  
+  /* Animación de movimiento de arriba a abajo */
+  animation: walkDown 8s linear infinite;
+}
+
+/* Animación que mueve el zorro de arriba hacia abajo */
+@keyframes walkDown {
+  0% {
+    top: -100px;
+  }
+  100% {
+    top: calc(100vh + 100px);
+  }
+}
+
+/* En móviles, lo hacemos más pequeño y más a la derecha */
+@media (max-width: 768px) {
+  .animated-fox-container {
+    width: 60px;
+  }
+  
+  .walking-fox {
+    right: 5px;
+  }
+}
