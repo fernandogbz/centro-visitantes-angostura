@@ -41,6 +41,27 @@ export interface DisponibilidadResponse {
   disponible: number;
 }
 
+export interface EstadisticasResponse {
+  periodo: {
+    mes: number;
+    ano: number;
+    fechaInicio: string;
+    fechaFin: string;
+  };
+  totalVisitantes: number;
+  totalVisitas: number;
+  visitasConfirmadas: number;
+  visitasRealizadas: number;
+  rankingComunas: Array<{
+    comuna: string;
+    visitantes: number;
+  }>;
+  flujoDiario: Array<{
+    dia: number;
+    visitantes: number;
+  }>;
+}
+
 // Endpoints de visitas
 export const visitasAPI = {
   crear: async (data: CrearVisitaData): Promise<VisitaResponse> => {
@@ -50,6 +71,21 @@ export const visitasAPI = {
 
   consultarDisponibilidad: async (fecha: string): Promise<DisponibilidadResponse> => {
     const response = await api.get(`/visitas/disponibilidad?fecha=${fecha}`);
+    return response.data;
+  },
+
+  obtenerEstadisticas: async (mes?: number, ano?: number): Promise<EstadisticasResponse> => {
+    const params = new URLSearchParams();
+    if (mes) params.append('mes', mes.toString());
+    if (ano) params.append('ano', ano.toString());
+    
+    console.log('🔍 Llamando a /visitas/estadisticas con:', { mes, ano });
+    console.log('📍 URL completa:', `/visitas/estadisticas?${params.toString()}`);
+    
+    const response = await api.get(`/visitas/estadisticas?${params.toString()}`);
+    
+    console.log('📥 Respuesta recibida:', response.data);
+    
     return response.data;
   },
 };

@@ -153,6 +153,23 @@ const Home = () => {
             </div>
           </div>
         </section>
+
+        {/* Enlace temporal al Dashboard */}
+        <section className="container mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h2 className="font-montserrat font-bold text-3xl md:text-4xl mb-4">
+              Acceso Rápido
+            </h2>
+          </div>
+
+          <div className="max-w-md mx-auto">
+            <Link to="/dashboard">
+              <Button variant="outline" className="w-full">
+                Dashboard (Admin)
+              </Button>
+            </Link>
+          </div>
+        </section>
       </main>
 
       <Footer />

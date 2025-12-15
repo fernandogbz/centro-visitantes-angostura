@@ -108,6 +108,104 @@ router.post(
   }
 );
 
+// Busca si existe el endpoint /estadisticas
+router.get('/estadisticas', async (req, res) => {
+  try {
+    const { mes, ano } = req.query;
+    const currentYear = ano ? parseInt(ano) : new Date().getFullYear();
+    const currentMonth = mes ? parseInt(mes) : new Date().getMonth() + 1;
+
+    console.log('📊 Consultando estadísticas:', { mes, ano, currentMonth, currentYear });
+
+    // Fecha de inicio y fin del periodo
+    const startDate = new Date(currentYear, currentMonth - 1, 1);
+    const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+
+    console.log('📅 Rango de fechas:', { startDate, endDate });
+
+    // Total de visitantes del periodo
+    const visitasPeriodo = await Visita.find({
+      fecha: { $gte: startDate, $lte: endDate },
+      estado: { $ne: 'cancelada' }
+    });
+
+    console.log(`✅ Visitas encontradas: ${visitasPeriodo.length}`);
+
+    if (visitasPeriodo.length === 0) {
+      console.log('⚠️ No hay visitas en este periodo');
+      return res.json({
+        periodo: {
+          mes: currentMonth,
+          ano: currentYear,
+          fechaInicio: startDate,
+          fechaFin: endDate
+        },
+        totalVisitantes: 0,
+        totalVisitas: 0,
+        visitasConfirmadas: 0,
+        visitasRealizadas: 0,
+        rankingComunas: [],
+        flujoDiario: []
+      });
+    }
+
+    const totalVisitantes = visitasPeriodo.reduce((sum, visita) => sum + visita.numVisitantes, 0);
+
+    // Ranking de comunas
+    const comunasCount = {};
+    visitasPeriodo.forEach(visita => {
+      const comuna = visita.contacto.comuna;
+      comunasCount[comuna] = (comunasCount[comuna] || 0) + visita.numVisitantes;
+    });
+
+    const rankingComunas = Object.entries(comunasCount)
+      .map(([comuna, visitantes]) => ({ comuna, visitantes }))
+      .sort((a, b) => b.visitantes - a.visitantes);
+
+    // Flujo de asistencia por día
+    const flujoAsistencia = {};
+    visitasPeriodo.forEach(visita => {
+      const dia = visita.fecha.getDate();
+      flujoAsistencia[dia] = (flujoAsistencia[dia] || 0) + visita.numVisitantes;
+    });
+
+    const flujoDiario = Object.entries(flujoAsistencia)
+      .map(([dia, visitantes]) => ({ dia: parseInt(dia), visitantes }))
+      .sort((a, b) => a.dia - b.dia);
+
+    // Estadísticas generales
+    const totalVisitas = visitasPeriodo.length;
+    const visitasConfirmadas = visitasPeriodo.filter(v => v.estado === 'confirmada').length;
+    const visitasRealizadas = visitasPeriodo.filter(v => v.estado === 'realizada').length;
+
+    const response = {
+      periodo: {
+        mes: currentMonth,
+        ano: currentYear,
+        fechaInicio: startDate,
+        fechaFin: endDate
+      },
+      totalVisitantes,
+      totalVisitas,
+      visitasConfirmadas,
+      visitasRealizadas,
+      rankingComunas,
+      flujoDiario
+    };
+
+    console.log('📦 Enviando respuesta con:', {
+      totalVisitas: response.totalVisitas,
+      totalVisitantes: response.totalVisitantes,
+      comunas: response.rankingComunas.length
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('❌ Error al obtener estadísticas:', error);
+    res.status(500).json({ error: 'Error al obtener estadísticas', details: error.message });
+  }
+});
+
 /**
  * GET /api/visitas/disponibilidad?fecha=YYYY-MM-DD - Consultar disponibilidad
  */
