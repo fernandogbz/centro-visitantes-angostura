@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { visitasAPI, type DisponibilidadResponse } from "@/services/api";
+import { useDisponibilidad } from "@/hooks/useDisponibilidad";
 import QRCode from "qrcode";
 import { sendEmail } from "@/services/email";
 
@@ -39,10 +40,16 @@ const Reservar = () => {
   const [esInstitucion, setEsInstitucion] = useState(false);
   const [codigoVisita, setCodigoVisita] = useState("");
   const [loading, setLoading] = useState(false);
-  const [disponibilidad, setDisponibilidad] =
-    useState<DisponibilidadResponse | null>(null);
   const qrCanvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+
+  // Hook de disponibilidad
+  const {
+    disponibilidad,
+    loading: loadingDisponibilidad,
+    error: errorDisponibilidad,
+    validarReserva,
+  } = useDisponibilidad(selectedDate);
 
   const [formData, setFormData] = useState({
     institucion: "",
@@ -55,30 +62,13 @@ const Reservar = () => {
     aceptaTerminos: false,
   });
 
-  const horariosDisponibles = [
-    { hora: "10:00", disponible: 50, total: 100 },
-    { hora: "11:00", disponible: 30, total: 100 },
-    { hora: "14:00", disponible: 75, total: 100 },
-  ];
-
-  // Consultar disponibilidad cuando cambia la fecha
-  useEffect(() => {
-    if (selectedDate) {
-      consultarDisponibilidad();
-    }
-  }, [selectedDate]);
-
-  const consultarDisponibilidad = async () => {
-    if (!selectedDate) return;
-
-    try {
-      const fechaISO = selectedDate.toISOString().split("T")[0];
-      const data = await visitasAPI.consultarDisponibilidad(fechaISO);
-      setDisponibilidad(data);
-    } catch (error) {
-      console.error("Error al consultar disponibilidad:", error);
-    }
-  };
+  // Construir lista de horarios disponibles desde el hook
+  const horariosDisponibles =
+    disponibilidad?.horarios?.map((h) => ({
+      hora: h.hora,
+      disponible: h.disponible,
+      total: h.capacidad,
+    })) || [];
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
@@ -335,7 +325,29 @@ const Reservar = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {selectedDate ? (
+                    {!selectedDate ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                        <p>
+                          Selecciona una fecha para ver los horarios disponibles
+                        </p>
+                      </div>
+                    ) : loadingDisponibilidad ? (
+                      <div className="text-center py-8">
+                        <Loader2 className="h-8 w-8 mx-auto mb-3 animate-spin text-primary" />
+                        <p className="text-muted-foreground">
+                          Consultando disponibilidad...
+                        </p>
+                      </div>
+                    ) : errorDisponibilidad ? (
+                      <div className="text-center py-8 text-destructive">
+                        <p>{errorDisponibilidad}</p>
+                      </div>
+                    ) : horariosDisponibles.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <p>No hay horarios disponibles para esta fecha</p>
+                      </div>
+                    ) : (
                       <RadioGroup
                         value={selectedHora}
                         onValueChange={setSelectedHora}
@@ -349,6 +361,7 @@ const Reservar = () => {
                               <RadioGroupItem
                                 value={horario.hora}
                                 id={horario.hora}
+                                disabled={horario.disponible === 0}
                               />
                               <Label
                                 htmlFor={horario.hora}
@@ -362,7 +375,9 @@ const Reservar = () => {
                                     variant={
                                       horario.disponible > 20
                                         ? "default"
-                                        : "secondary"
+                                        : horario.disponible > 0
+                                        ? "secondary"
+                                        : "destructive"
                                     }
                                   >
                                     {horario.disponible}/{horario.total}{" "}
@@ -374,13 +389,6 @@ const Reservar = () => {
                           ))}
                         </div>
                       </RadioGroup>
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                        <p>
-                          Selecciona una fecha para ver los horarios disponibles
-                        </p>
-                      </div>
                     )}
                   </CardContent>
                 </Card>

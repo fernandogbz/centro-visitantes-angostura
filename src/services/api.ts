@@ -110,4 +110,72 @@ api.interceptors.response.use(
   }
 );
 
+// ===================================
+// TIPOS PARA DISPONIBILIDAD
+// ===================================
+
+export interface HorarioDisponibilidad {
+  hora: string;
+  capacidad: number;
+  disponible: number;
+  ocupado: number;
+  porcentajeOcupacion: number;
+}
+
+export interface DisponibilidadFechaResponse {
+  fecha: string;
+  disponible: boolean;
+  motivo?: string;
+  capacidadTotal?: number;
+  cuposDisponibles?: number;
+  cuposOcupados?: number;
+  porcentajeOcupacion?: number;
+  horarios: HorarioDisponibilidad[];
+}
+
+export interface ValidarReservaRequest {
+  fecha: string;
+  hora: string;
+  numVisitantes: number;
+}
+
+export interface ValidarReservaResponse {
+  valido: boolean;
+  mensaje: string;
+  cuposDisponibles?: number;
+}
+
+export interface DiaBloqueado {
+  _id: string;
+  fecha: string;
+  motivo: string;
+  tipo: string;
+  activo: boolean;
+}
+
+// ===================================
+// API DE DISPONIBILIDAD
+// ===================================
+
+export const disponibilidadAPI = {
+  consultarDisponibilidadFecha: async (
+    fecha: string
+  ): Promise<DisponibilidadFechaResponse> => {
+    const response = await api.get(`/disponibilidad/${fecha}`);
+    return response.data;
+  },
+
+  validarReserva: async (
+    data: ValidarReservaRequest
+  ): Promise<ValidarReservaResponse> => {
+    const response = await api.post('/disponibilidad/validar', data);
+    return response.data;
+  },
+
+  obtenerDiasBloqueados: async (): Promise<DiaBloqueado[]> => {
+    const response = await api.get('/disponibilidad/dias-bloqueados/all');
+    return response.data;
+  },
+};
+
 export default api;
