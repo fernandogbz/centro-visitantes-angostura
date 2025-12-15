@@ -17,7 +17,7 @@ const visitaSchema = new mongoose.Schema({
   hora: {
     type: String,
     required: true,
-    enum: ['10:00', '11:00', '14:00']
+    enum: ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']
   },
   institucion: {
     type: String,
@@ -56,25 +56,33 @@ const visitaSchema = new mongoose.Schema({
   },
   estado: {
     type: String,
-    required: true,
-    enum: ['confirmada', 'realizada', 'cancelada'],
+    enum: ['confirmada', 'completada', 'cancelada', 'no_asistio'],
     default: 'confirmada'
   },
   creadoEn: {
     type: Date,
     default: Date.now
   },
-  horaLlegada: {
+  fechaValidacion: {
     type: Date,
     default: null
+  },
+  horaLlegadaReal: {
+    type: String,
+    default: null
+  },
+  notas: {
+    type: String,
+    default: ''
   }
+}, {
+  timestamps: true,
+  collection: 'visitas'
 });
 
-// Índices para búsquedas eficientes
-visitaSchema.index({ fecha: 1, hora: 1 });
-// visitaSchema.index({ codigoVisita: 1 });
-visitaSchema.index({ 'contacto.telefono': 1 });
+// ✅ ÍNDICES CORREGIDOS
+visitaSchema.index({ fecha: 1, hora: 1 });      // ← CORREGIDO
+visitaSchema.index({ estado: 1 });              // ← OK
+visitaSchema.index({ codigoVisita: 1 });        // ← CORREGIDO
 
-const Visita = mongoose.model('Visita', visitaSchema);
-
-export default Visita;
+export default mongoose.model('Visita', visitaSchema);
