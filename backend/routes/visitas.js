@@ -15,7 +15,7 @@ router.post(
   '/',
   [
     body('fecha').isISO8601().withMessage('Fecha inválida'),
-    body('hora').isIn(['10:00', '11:00', '14:00']).withMessage('Hora debe ser 10:00, 11:00 o 14:00'),
+    body('hora').isIn(['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']).withMessage('Hora no válida'),
     body('institucion').optional().trim().isLength({ min: 3, max: 200 }).escape(),
     body('numVisitantes').isInt({ min: 1, max: 100 }).withMessage('Número de visitantes debe estar entre 1 y 100'),
     body('arboretum').isIn(['Si', 'No']).withMessage('Arboretum debe ser Si o No'),
