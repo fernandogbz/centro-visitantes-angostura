@@ -19,10 +19,10 @@ const CalendarioDisponibilidad = ({ onSelectDate, selectedDate }: CalendarioDisp
     }
   };
 
-  // Deshabilitar fechas pasadas y domingos
+  // Deshabilitar fechas pasadas y lunes
   const disabledDays = [
     { before: new Date() },
-    { dayOfWeek: [0] }, // Domingo
+    { dayOfWeek: [1] }, // Solo Lunes
   ];
 
   return (
@@ -31,7 +31,7 @@ const CalendarioDisponibilidad = ({ onSelectDate, selectedDate }: CalendarioDisp
         <div>
           <h3 className="font-montserrat font-bold text-xl mb-2">Selecciona una Fecha</h3>
           <p className="text-sm text-muted-foreground">
-            El centro está cerrado los domingos
+            El centro está cerrado los días lunes
           </p>
         </div>
 
