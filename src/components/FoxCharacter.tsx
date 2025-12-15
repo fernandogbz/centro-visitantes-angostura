@@ -1,7 +1,7 @@
-import React from 'react';
-import './FoxCharacter.css';
+import React from "react";
+import "./FoxCharacter.css";
 
-export type FoxAction = 'idle' | 'walk';
+export type FoxAction = "idle" | "walk";
 
 interface FoxCharacterProps {
   action: FoxAction;
@@ -14,11 +14,11 @@ export const FoxCharacter: React.FC<FoxCharacterProps> = ({
   action,
   size = 100,
   speed = 0.8,
-  className = '',
+  className = "",
 }) => {
   const dynamicStyles = {
-    '--fox-size': `${size}px`,
-    '--anim-duration': `${speed}s`,
+    "--fox-size": `${size}px`,
+    "--anim-duration": `${speed}s`,
   } as React.CSSProperties;
 
   return (
