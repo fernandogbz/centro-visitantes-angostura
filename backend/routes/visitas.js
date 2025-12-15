@@ -5,9 +5,6 @@ import { generarCodigoVisita } from '../utils/generarCodigo.js';
 
 const router = express.Router();
 
-// Aforo máximo por día (configurable)
-const AFORO_MAXIMO = 250;
-
 /**
  * POST /api/visitas - Crear nueva reserva
  */
@@ -17,7 +14,7 @@ router.post(
     body('fecha').isISO8601().withMessage('Fecha inválida'),
     body('hora').isIn(['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00']).withMessage('Hora no válida'),
     body('institucion').optional().trim().isLength({ min: 3, max: 200 }).escape(),
-    body('numVisitantes').isInt({ min: 1, max: 100 }).withMessage('Número de visitantes debe estar entre 1 y 100'),
+    body('numVisitantes').isInt({ min: 1, max: 30 }).withMessage('Número de visitantes debe estar entre 1 y 30'),
     body('arboretum').isIn(['Si', 'No']).withMessage('Arboretum debe ser Si o No'),
     body('contacto.nombre').trim().notEmpty().withMessage('Nombre de contacto es requerido').escape(),
     body('contacto.telefono').matches(/^\+56\d{9}$/).withMessage('Teléfono debe tener formato +56XXXXXXXXX'),
@@ -45,28 +42,8 @@ router.post(
         return res.status(400).json({ error: 'La fecha debe ser futura' });
       }
 
-      // Calcular aforo usado en esa fecha
-      const inicioDelDia = new Date(fechaVisita);
-      inicioDelDia.setHours(0, 0, 0, 0);
-      
-      const finDelDia = new Date(fechaVisita);
-      finDelDia.setHours(23, 59, 59, 999);
-
-      const visitasDelDia = await Visita.find({
-        fecha: { $gte: inicioDelDia, $lte: finDelDia },
-        estado: { $ne: 'cancelada' }
-      });
-
-      const aforoReservado = visitasDelDia.reduce((sum, v) => sum + v.numVisitantes, 0);
-
-      // Verificar si hay espacio disponible
-      if (aforoReservado + numVisitantes > AFORO_MAXIMO) {
-        return res.status(400).json({ 
-          error: 'Aforo insuficiente',
-          disponible: AFORO_MAXIMO - aforoReservado,
-          solicitado: numVisitantes
-        });
-      }
+      // La validación de capacidad se hace en el servicio de disponibilidad
+      // No validamos aforo total aquí, solo por horario
 
       // Generar código de visita
       const codigoVisita = await generarCodigoVisita(fechaVisita);

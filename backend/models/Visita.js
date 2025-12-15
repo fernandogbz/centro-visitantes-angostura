@@ -27,7 +27,7 @@ const visitaSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 100
+    max: 30
   },
   arboretum: {
     type: String,
