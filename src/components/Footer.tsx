@@ -46,9 +46,8 @@ const Footer = () => {
                 Horarios de Atención
               </h3>
               <div className="text-sm space-y-2">
-                <p>Lunes a Viernes: 10:00 - 17:00</p>
-                <p>Sábados: 10:00 - 14:00</p>
-                <p className="text-primary-foreground/80">Domingos: Cerrado</p>
+                <p>Martes a Domingo: 09:00 - 16:00</p>
+                <p className="text-primary-foreground/80">Lunes: Cerrado</p>
               </div>
             </div>
 

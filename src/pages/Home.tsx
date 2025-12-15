@@ -97,11 +97,11 @@ const Home = () => {
                 </CardHeader>
                 <CardContent className="pb-3 pt-0">
                   <p className="text-base text-muted-foreground leading-relaxed">
-                    Lun-Vie: 10:00 - 17:00
+                    Martes a Domingo
                     <br />
-                    Sábado: 10:00 - 14:00
+                    09:00 - 13:00 y 14:00 - 16:00
                     <br />
-                    Domingo: Cerrado
+                    Lunes: Cerrado
                   </p>
                 </CardContent>
               </Card>

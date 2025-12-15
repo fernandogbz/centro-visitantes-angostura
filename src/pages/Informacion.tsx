@@ -36,15 +36,15 @@ const Informacion = () => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between py-2 border-b">
-                  <span className="font-medium">Lunes - Viernes</span>
-                  <span className="text-muted-foreground">10:00 - 17:00</span>
+                  <span className="font-medium">Martes a Domingo</span>
+                  <span className="text-muted-foreground">09:00 - 13:00</span>
                 </div>
                 <div className="flex justify-between py-2 border-b">
-                  <span className="font-medium">Sábados</span>
-                  <span className="text-muted-foreground">10:00 - 14:00</span>
+                  <span className="font-medium">Turno Tarde</span>
+                  <span className="text-muted-foreground">14:00 - 16:00</span>
                 </div>
                 <div className="flex justify-between py-2">
-                  <span className="font-medium">Domingos</span>
+                  <span className="font-medium">Lunes</span>
                   <span className="text-destructive font-medium">Cerrado</span>
                 </div>
                 <div className="mt-4 p-3 bg-secondary/10 rounded-lg text-sm">
