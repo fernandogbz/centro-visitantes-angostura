@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import visitasRoutes from "./routes/visitas.js";
+import disponibilidadRoutes from "./routes/disponibilidadRoute.js"; // ← VERIFICAR esta línea
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Rutas
 app.use("/api/visitas", visitasRoutes);
+app.use("/api/disponibilidad", disponibilidadRoutes); // ← DEBE ESTAR AQUÍ
 
 // Ruta de health check
 app.get("/api/health", (req, res) => {
