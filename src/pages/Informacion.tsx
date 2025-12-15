@@ -48,7 +48,7 @@ const Informacion = () => {
                   <span className="text-destructive font-medium">Cerrado</span>
                 </div>
                 <div className="mt-4 p-3 bg-secondary/10 rounded-lg text-sm">
-                  <p className="text-secondary-foreground">
+                  <p className="text-muted-foreground">
                     <strong>Importante:</strong> Se requiere reserva previa para
                     todas las visitas
                   </p>
