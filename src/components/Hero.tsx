@@ -5,9 +5,17 @@ import { ArrowRight } from "lucide-react";
 const Hero = () => {
   return (
     <section className="relative h-[500px] md:h-[600px] flex items-center justify-center overflow-hidden">
-      {/* Background Image Placeholder */}
+      {/* Background Video */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-secondary/90">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511497584788-876760111969?w=1600')] bg-cover bg-center opacity-30"></div>
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover opacity-30"
+        >
+          <source src="/video-angostura.mp4" type="video/mp4" />
+        </video>
       </div>
 
       {/* Content */}
@@ -15,10 +23,13 @@ const Hero = () => {
         <h1 className="font-montserrat font-bold text-4xl md:text-6xl text-white mb-6 drop-shadow-lg">
           Bienvenido al Centro de Visitantes
           <br />
-          <span className="text-secondary-foreground">Angostura del Biobío</span>
+          <span className="text-secondary-foreground">
+            Angostura del Biobío
+          </span>
         </h1>
         <p className="text-xl md:text-2xl text-white/95 mb-8 max-w-3xl mx-auto drop-shadow">
-          Descubre la biodiversidad y la historia del río Biobío en un entorno natural único
+          Descubre la biodiversidad y la historia del río Biobío en un entorno
+          natural único
         </p>
         <Link to="/reservar">
           <Button
