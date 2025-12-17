@@ -7,17 +7,22 @@ export const AnimatedFox: React.FC = () => {
     "walk-down"
   );
   const [position, setPosition] = useState(-10);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
+    if (isPaused) return;
+
     // Animación de los sprites
     const spriteInterval = setInterval(() => {
       setCurrentFrame((prev) => (prev % 5) + 1);
     }, 150);
 
     return () => clearInterval(spriteInterval);
-  }, [phase]);
+  }, [phase, isPaused]);
 
   useEffect(() => {
+    if (isPaused) return;
+
     // Animación del movimiento
     const moveInterval = setInterval(() => {
       setPosition((prev) => {
@@ -37,9 +42,11 @@ export const AnimatedFox: React.FC = () => {
     }, 16);
 
     return () => clearInterval(moveInterval);
-  }, [phase, position]);
+  }, [phase, position, isPaused]);
 
   useEffect(() => {
+    if (isPaused) return;
+
     // Cambiar de wave a walk-away después de 2 segundos
     if (phase === "wave") {
       const timer = setTimeout(() => {
@@ -47,7 +54,11 @@ export const AnimatedFox: React.FC = () => {
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [phase]);
+  }, [phase, isPaused]);
+
+  const handleClick = () => {
+    setIsPaused((prev) => !prev);
+  };
 
   const getCurrentImage = () => {
     if (phase === "wave") {
@@ -59,13 +70,15 @@ export const AnimatedFox: React.FC = () => {
   return (
     <div
       className="animated-fox-container"
+      onClick={handleClick}
       style={{
         position: "fixed",
-        right: "-17px",
+        right: "-13px",
         top: `${position}%`,
         transform: "rotate(-90deg)",
         zIndex: 50,
-        pointerEvents: "none",
+        pointerEvents: "auto",
+        cursor: "pointer",
         transition: "top 0.016s linear",
       }}
     >
@@ -73,8 +86,8 @@ export const AnimatedFox: React.FC = () => {
         src={getCurrentImage()}
         alt="Animated Fox"
         style={{
-          width: "150px",
-          height: "150px",
+          width: "200px",
+          height: "250px",
           imageRendering: "pixelated",
         }}
       />
