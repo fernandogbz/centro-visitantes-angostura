@@ -806,11 +806,14 @@ const Dashboard = () => {
                                   <SelectItem value="confirmada">
                                     Confirmada
                                   </SelectItem>
-                                  <SelectItem value="realizada">
-                                    Realizada
+                                  <SelectItem value="completada">
+                                    Completada
                                   </SelectItem>
                                   <SelectItem value="cancelada">
                                     Cancelada
+                                  </SelectItem>
+                                  <SelectItem value="no_asistio">
+                                    No Asistió
                                   </SelectItem>
                                 </SelectContent>
                               </Select>
