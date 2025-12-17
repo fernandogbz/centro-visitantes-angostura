@@ -1362,7 +1362,8 @@ const Dashboard = () => {
                         .map((visita) => (
                           <Card
                             key={visita.codigoVisita}
-                            className="border-l-4 border-l-green-600"
+                            className="border-l-4 border-l-green-600 cursor-pointer hover:shadow-md transition-shadow"
+                            onClick={() => abrirModalDetalles(visita)}
                           >
                             <CardContent className="p-4">
                               <div className="flex justify-between items-center">
