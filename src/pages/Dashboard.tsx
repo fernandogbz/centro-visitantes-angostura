@@ -1478,16 +1478,33 @@ const Dashboard = () => {
                         <summary className="text-xs text-blue-600 cursor-pointer hover:underline">
                           Ver {visitasComuna.length} reservas
                         </summary>
-                        <div className="mt-2 space-y-1 pl-4 border-l-2 border-gray-200">
+                        <div className="mt-2 space-y-2 pl-4 border-l-2 border-gray-200">
                           {visitasComuna.map((v) => (
                             <div
                               key={v.codigoVisita}
-                              className="text-xs text-gray-600"
+                              onClick={() => abrirModalDetalles(v)}
+                              className="text-xs text-gray-700 p-2 rounded hover:bg-gray-100 cursor-pointer transition-colors"
                             >
-                              <span className="font-medium">
-                                {v.contacto.nombre}
-                              </span>{" "}
-                              - {v.numVisitantes} personas ({v.dia})
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-mono text-blue-600 font-semibold">
+                                  {v.codigoVisita}
+                                </span>
+                                <span className="font-medium">
+                                  {v.contacto.nombre}
+                                </span>
+                              </div>
+                              {v.institucion && (
+                                <div className="text-gray-600">
+                                  {v.institucion}
+                                </div>
+                              )}
+                              <div className="flex items-center gap-2 text-gray-500">
+                                <span>{v.numVisitantes} visitantes</span>
+                                <span>•</span>
+                                <span>
+                                  {formatearFechaCompleta(v.fecha, v.dia)}
+                                </span>
+                              </div>
                             </div>
                           ))}
                         </div>
