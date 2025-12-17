@@ -20,6 +20,10 @@ activo: {
 orden: {
     type: Number,
     default: 0
+},
+descripcion: {
+    type: String,
+    default: ''
 }
 }, {
     timestamps: false,
