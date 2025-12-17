@@ -221,7 +221,8 @@ const Reservar = () => {
         // Generar QR con el código de visita
         setTimeout(() => {
           if (qrCanvasRef.current) {
-            QRCode.toCanvas(qrCanvasRef.current, response.visita.codigoVisita, {
+            const qrUrl = `${window.location.origin}/admin/validar/${response.visita.codigoVisita}`;
+            QRCode.toCanvas(qrCanvasRef.current, qrUrl, {
               width: 200,
               margin: 2,
               color: {

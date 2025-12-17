@@ -349,8 +349,15 @@ router.patch("/:codigo/estado", async (req, res) => {
 router.put("/:codigo", async (req, res) => {
   try {
     const { codigo } = req.params;
-    const { fecha, hora, institucion, numVisitantes, arboretum, contacto } =
-      req.body;
+    const {
+      fecha,
+      hora,
+      institucion,
+      numVisitantes,
+      arboretum,
+      contacto,
+      estado,
+    } = req.body;
 
     // Obtener nombre del día si cambia la fecha
     let dia;
@@ -380,6 +387,7 @@ router.put("/:codigo", async (req, res) => {
     if (arboretum) updateData.arboretum = arboretum;
     if (contacto) updateData.contacto = contacto;
     if (dia) updateData.dia = dia;
+    if (estado) updateData.estado = estado;
 
     const visita = await Visita.findOneAndUpdate(
       { codigoVisita: codigo },
@@ -445,5 +453,37 @@ router.get(
     }
   }
 );
+
+/**
+ * GET /api/visitas/codigo/:codigo - Obtener visita por código
+ */
+router.get("/codigo/:codigo", async (req, res) => {
+  try {
+    const { codigo } = req.params;
+
+    const visita = await Visita.findOne({ codigoVisita: codigo });
+
+    if (!visita) {
+      return res.status(404).json({ error: "Visita no encontrada" });
+    }
+
+    res.json({
+      visita: {
+        codigoVisita: visita.codigoVisita,
+        dia: visita.dia,
+        fecha: visita.fecha,
+        hora: visita.hora,
+        institucion: visita.institucion,
+        numVisitantes: visita.numVisitantes,
+        arboretum: visita.arboretum,
+        contacto: visita.contacto,
+        estado: visita.estado,
+      },
+    });
+  } catch (error) {
+    console.error("Error al obtener visita por código:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
 
 export default router;
