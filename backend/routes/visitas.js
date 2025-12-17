@@ -66,7 +66,10 @@ router.post(
 
       const { fecha, hora, institucion, numVisitantes, arboretum, contacto } =
         req.body;
-      const fechaVisita = new Date(fecha);
+
+      // Parsear fecha en hora local para evitar problemas de zona horaria
+      const [year, month, day] = fecha.split("-").map(Number);
+      const fechaVisita = new Date(year, month - 1, day, 0, 0, 0, 0);
 
       // Validar que la fecha sea futura
       const hoy = new Date();
@@ -132,18 +135,9 @@ router.get("/estadisticas", async (req, res) => {
     const currentYear = ano ? parseInt(ano) : new Date().getFullYear();
     const currentMonth = mes ? parseInt(mes) : new Date().getMonth() + 1;
 
-    console.log("📊 Consultando estadísticas:", {
-      mes,
-      ano,
-      currentMonth,
-      currentYear,
-    });
-
     // Fecha de inicio y fin del periodo
     const startDate = new Date(currentYear, currentMonth - 1, 1);
     const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
-
-    console.log("📅 Rango de fechas:", { startDate, endDate });
 
     // Total de visitantes del periodo
     const visitasPeriodo = await Visita.find({
@@ -151,10 +145,7 @@ router.get("/estadisticas", async (req, res) => {
       estado: { $ne: "cancelada" },
     });
 
-    console.log(`✅ Visitas encontradas: ${visitasPeriodo.length}`);
-
     if (visitasPeriodo.length === 0) {
-      console.log("⚠️ No hay visitas en este periodo");
       return res.json({
         periodo: {
           mes: currentMonth,
@@ -222,12 +213,6 @@ router.get("/estadisticas", async (req, res) => {
       flujoDiario,
     };
 
-    console.log("📦 Enviando respuesta con:", {
-      totalVisitas: response.totalVisitas,
-      totalVisitantes: response.totalVisitantes,
-      comunas: response.rankingComunas.length,
-    });
-
     res.json(response);
   } catch (error) {
     console.error("❌ Error al obtener estadísticas:", error);
@@ -278,6 +263,140 @@ router.get("/listado", async (req, res) => {
     res
       .status(500)
       .json({ error: "Error al obtener listado", details: error.message });
+  }
+});
+
+/**
+ * GET /api/visitas/proximas - Obtener próximas visitas desde hoy
+ */
+router.get("/proximas", async (req, res) => {
+  try {
+    const { limite } = req.query;
+    const limit = limite ? parseInt(limite) : 5;
+
+    // Fecha actual a las 00:00:00
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    // Obtener TODAS las visitas desde hoy en adelante
+    const todasLasVisitas = await Visita.find({
+      fecha: { $gte: hoy },
+      estado: { $in: ["confirmada", "realizada"] },
+    }).sort({ fecha: 1, hora: 1 });
+
+    // Tomar solo las primeras 'limit' visitas
+    const visitas = todasLasVisitas.slice(0, limit);
+
+    res.json({
+      visitas: visitas.map((v) => ({
+        codigoVisita: v.codigoVisita,
+        fecha: v.fecha,
+        hora: v.hora,
+        dia: v.dia,
+        numVisitantes: v.numVisitantes,
+        institucion: v.institucion,
+        arboretum: v.arboretum,
+        estado: v.estado,
+        contacto: {
+          nombre: v.contacto.nombre,
+          telefono: v.contacto.telefono,
+          comuna: v.contacto.comuna,
+          correo: v.contacto.correo,
+        },
+      })),
+    });
+  } catch (error) {
+    console.error("❌ Error al obtener próximas visitas:", error);
+    res.status(500).json({
+      error: "Error al obtener próximas visitas",
+      details: error.message,
+    });
+  }
+});
+
+/**
+ * PATCH /api/visitas/:codigo/estado - Actualizar estado de una visita
+ */
+router.patch("/:codigo/estado", async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const { estado } = req.body;
+
+    if (!["confirmada", "realizada", "cancelada"].includes(estado)) {
+      return res.status(400).json({ error: "Estado inválido" });
+    }
+
+    const visita = await Visita.findOneAndUpdate(
+      { codigoVisita: codigo },
+      { estado },
+      { new: true }
+    );
+
+    if (!visita) {
+      return res.status(404).json({ error: "Visita no encontrada" });
+    }
+
+    res.json({ mensaje: "Estado actualizado", visita });
+  } catch (error) {
+    console.error("❌ Error al actualizar estado:", error);
+    res.status(500).json({ error: "Error al actualizar estado" });
+  }
+});
+
+/**
+ * PUT /api/visitas/:codigo - Actualizar visita completa
+ */
+router.put("/:codigo", async (req, res) => {
+  try {
+    const { codigo } = req.params;
+    const { fecha, hora, institucion, numVisitantes, arboretum, contacto } =
+      req.body;
+
+    // Obtener nombre del día si cambia la fecha
+    let dia;
+    let fechaObj;
+    if (fecha) {
+      // Parsear fecha en hora local, no UTC, para evitar cambios de día
+      const [year, month, day] = fecha.split("-").map(Number);
+      fechaObj = new Date(year, month - 1, day, 0, 0, 0, 0);
+
+      const diasSemana = [
+        "Domingo",
+        "Lunes",
+        "Martes",
+        "Miércoles",
+        "Jueves",
+        "Viernes",
+        "Sábado",
+      ];
+      dia = diasSemana[fechaObj.getDay()];
+    }
+
+    const updateData = {};
+    if (fechaObj) updateData.fecha = fechaObj;
+    if (hora) updateData.hora = hora;
+    if (institucion !== undefined) updateData.institucion = institucion;
+    if (numVisitantes) updateData.numVisitantes = numVisitantes;
+    if (arboretum) updateData.arboretum = arboretum;
+    if (contacto) updateData.contacto = contacto;
+    if (dia) updateData.dia = dia;
+
+    const visita = await Visita.findOneAndUpdate(
+      { codigoVisita: codigo },
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!visita) {
+      return res.status(404).json({ error: "Visita no encontrada" });
+    }
+
+    res.json({ mensaje: "Visita actualizada", visita });
+  } catch (error) {
+    console.error("❌ Error al actualizar visita:", error);
+    res
+      .status(500)
+      .json({ error: "Error al actualizar visita", details: error.message });
   }
 });
 

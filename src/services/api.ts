@@ -131,6 +131,32 @@ export const visitasAPI = {
     const response = await api.get(`/visitas/listado?${params.toString()}`);
     return response.data;
   },
+
+  obtenerProximas: async (limite?: number): Promise<ListadoVisitasResponse> => {
+    const params = new URLSearchParams();
+    if (limite) params.append("limite", limite.toString());
+
+    const response = await api.get(`/visitas/proximas?${params.toString()}`);
+    return response.data;
+  },
+
+  actualizarEstado: async (
+    codigoVisita: string,
+    estado: string
+  ): Promise<any> => {
+    const response = await api.patch(`/visitas/${codigoVisita}/estado`, {
+      estado,
+    });
+    return response.data;
+  },
+
+  actualizarVisita: async (
+    codigoVisita: string,
+    data: Partial<CrearVisitaData>
+  ): Promise<any> => {
+    const response = await api.put(`/visitas/${codigoVisita}`, data);
+    return response.data;
+  },
 };
 
 // Manejo de errores centralizado

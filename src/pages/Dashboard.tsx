@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import {
+  formatearParaInput,
+  formatearFechaCompleta,
+  obtenerDiaSemana,
+} from "@/utils/formatearFecha";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -18,12 +23,24 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   BarChart,
   Bar,
@@ -51,11 +68,16 @@ import {
   Clock,
   Sparkles,
   LogOut,
+  Eye,
+  Edit,
+  X,
+  Save,
 } from "lucide-react";
 import {
   visitasAPI,
   EstadisticasResponse,
   VisitaDetalle,
+  CrearVisitaData,
 } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -112,6 +134,21 @@ const Dashboard = () => {
   const [visitasDetalle, setVisitasDetalle] = useState<VisitaDetalle[]>([]);
   const [loadingModal, setLoadingModal] = useState(false);
 
+  // Estados para próximas visitas
+  const [proximasVisitas, setProximasVisitas] = useState<VisitaDetalle[]>([]);
+  const [loadingProximas, setLoadingProximas] = useState(false);
+  const [mostrarTodasProximas, setMostrarTodasProximas] = useState(false);
+
+  // Estados para modal de detalles y edición
+  const [modalDetalles, setModalDetalles] = useState(false);
+  const [modalEdicion, setModalEdicion] = useState(false);
+  const [visitaSeleccionada, setVisitaSeleccionada] =
+    useState<VisitaDetalle | null>(null);
+  const [formEdicion, setFormEdicion] = useState<any>({});
+  const [hayCambiosSinGuardar, setHayCambiosSinGuardar] = useState(false);
+  const [mostrarAlertaCambios, setMostrarAlertaCambios] = useState(false);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+
   // Verificar autenticación
   useEffect(() => {
     const encryptedKey = window.localStorage.getItem("accessKey");
@@ -125,6 +162,10 @@ const Dashboard = () => {
   useEffect(() => {
     cargarEstadisticas();
   }, [mesSeleccionado, anoSeleccionado]);
+
+  useEffect(() => {
+    cargarProximasVisitas();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("accessKey");
@@ -180,6 +221,139 @@ const Dashboard = () => {
     }
   };
 
+  const cargarProximasVisitas = async (limite?: number) => {
+    try {
+      setLoadingProximas(true);
+      const data = await visitasAPI.obtenerProximas(limite);
+      setProximasVisitas(data.visitas);
+    } catch (error) {
+      console.error("❌ Error al cargar próximas visitas:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las próximas visitas",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingProximas(false);
+    }
+  };
+
+  // Funciones para modal de detalles
+  const abrirModalDetalles = (visita: VisitaDetalle) => {
+    setVisitaSeleccionada(visita);
+    setModalDetalles(true);
+  };
+
+  // Funciones para modal de edición
+  const abrirModalEdicion = (visita: VisitaDetalle) => {
+    setVisitaSeleccionada(visita);
+    setFormEdicion({
+      fecha: formatearParaInput(visita.fecha),
+      hora: visita.hora,
+      institucion: visita.institucion || "",
+      numVisitantes: visita.numVisitantes,
+      arboretum: visita.arboretum,
+      nombreContacto: visita.contacto?.nombre || "",
+      telefonoContacto: visita.contacto?.telefono || "",
+      comunaContacto: visita.contacto?.comuna || "",
+      correoContacto: visita.contacto?.correo || "",
+    });
+    setHayCambiosSinGuardar(false);
+    setModalEdicion(true);
+  };
+
+  const handleFormChange = (campo: string, valor: any) => {
+    setFormEdicion((prev: any) => ({ ...prev, [campo]: valor }));
+    setHayCambiosSinGuardar(true);
+  };
+
+  const cerrarModalEdicion = () => {
+    if (hayCambiosSinGuardar) {
+      setMostrarAlertaCambios(true);
+    } else {
+      setModalEdicion(false);
+      setVisitaSeleccionada(null);
+    }
+  };
+
+  const confirmarSalirSinGuardar = () => {
+    setMostrarAlertaCambios(false);
+    setModalEdicion(false);
+    setHayCambiosSinGuardar(false);
+    setVisitaSeleccionada(null);
+  };
+
+  const guardarEdicion = async () => {
+    if (!visitaSeleccionada) return;
+
+    try {
+      setGuardandoEdicion(true);
+
+      const dataActualizada: Partial<CrearVisitaData> = {
+        fecha: formEdicion.fecha,
+        hora: formEdicion.hora,
+        institucion: formEdicion.institucion,
+        numVisitantes: formEdicion.numVisitantes,
+        arboretum: formEdicion.arboretum,
+        contacto: {
+          nombre: formEdicion.nombreContacto,
+          telefono: formEdicion.telefonoContacto,
+          comuna: formEdicion.comunaContacto,
+          correo: formEdicion.correoContacto,
+        },
+      };
+
+      await visitasAPI.actualizarVisita(
+        visitaSeleccionada.codigoVisita,
+        dataActualizada
+      );
+
+      toast({
+        title: "Éxito",
+        description: "Visita actualizada correctamente",
+      });
+
+      setModalEdicion(false);
+      setHayCambiosSinGuardar(false);
+      setVisitaSeleccionada(null);
+
+      // Recargar próximas visitas
+      cargarProximasVisitas(mostrarTodasProximas ? 50 : 5);
+    } catch (error: any) {
+      console.error("❌ Error al guardar:", error);
+      toast({
+        title: "Error",
+        description:
+          error.response?.data?.error || "No se pudo actualizar la visita",
+        variant: "destructive",
+      });
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
+
+  // Función para cambiar estado
+  const cambiarEstado = async (codigoVisita: string, nuevoEstado: string) => {
+    try {
+      await visitasAPI.actualizarEstado(codigoVisita, nuevoEstado);
+
+      toast({
+        title: "Éxito",
+        description: "Estado actualizado correctamente",
+      });
+
+      // Recargar próximas visitas
+      cargarProximasVisitas(mostrarTodasProximas ? 50 : 5);
+    } catch (error: any) {
+      console.error("❌ Error al cambiar estado:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Agrupar visitas por día
   const agruparPorDia = (visitas: VisitaDetalle[]) => {
     const grupos: { [key: string]: VisitaDetalle[] } = {};
@@ -192,15 +366,6 @@ const Dashboard = () => {
       grupos[fechaKey].push(visita);
     });
     return grupos;
-  };
-
-  // Formatear fecha completa: "Jueves - 18 diciembre 2025"
-  const formatearFechaCompleta = (fechaStr: string, diaStr: string) => {
-    const fecha = new Date(fechaStr);
-    const diaNumero = fecha.getDate();
-    const mes = MESES[fecha.getMonth()].toLowerCase();
-    const ano = fecha.getFullYear();
-    return `${diaStr} - ${diaNumero} ${mes} ${ano}`;
   };
 
   const anos = Array.from(
@@ -432,6 +597,177 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Tabla de Próximas Visitas */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-600" />
+              {obtenerDiaSemana(new Date())},{" "}
+              {new Date().toLocaleDateString("es-ES", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+            </CardTitle>
+            <CardDescription>
+              Reservas confirmadas para el día de hoy
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loadingProximas ? (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-4 border-blue-600"></div>
+              </div>
+            ) : proximasVisitas.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                  <Calendar className="h-8 w-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 font-medium">
+                  No hay visitas próximas programadas
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Las nuevas reservas aparecerán aquí
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">
+                          Hora
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">
+                          Visitante
+                        </th>
+                        <th className="text-left py-3 px-4 font-semibold text-sm text-gray-700">
+                          Institución
+                        </th>
+                        <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">
+                          N° Visitantes
+                        </th>
+                        <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">
+                          Estado
+                        </th>
+                        <th className="text-center py-3 px-4 font-semibold text-sm text-gray-700">
+                          Acciones
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(mostrarTodasProximas
+                        ? proximasVisitas
+                        : proximasVisitas.slice(0, 5)
+                      ).map((visita, index) => (
+                        <tr
+                          key={visita.codigoVisita}
+                          className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${
+                            index === 0 ? "bg-blue-50/30" : ""
+                          }`}
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4 text-blue-600" />
+                              <span className="font-medium text-gray-900">
+                                {visita.hora}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <p className="font-medium text-gray-900">
+                              {visita.contacto.nombre}
+                            </p>
+                          </td>
+                          <td className="py-3 px-4 text-gray-700">
+                            {visita.institucion || (
+                              <span className="text-gray-400 italic">
+                                Sin institución
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">
+                              {visita.numVisitantes}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex justify-center">
+                              <Select
+                                value={visita.estado}
+                                onValueChange={(value) =>
+                                  cambiarEstado(visita.codigoVisita, value)
+                                }
+                              >
+                                <SelectTrigger className="w-32 h-8">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="confirmada">
+                                    Confirmada
+                                  </SelectItem>
+                                  <SelectItem value="realizada">
+                                    Realizada
+                                  </SelectItem>
+                                  <SelectItem value="cancelada">
+                                    Cancelada
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => abrirModalDetalles(visita)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => abrirModalEdicion(visita)}
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {proximasVisitas.length > 5 && (
+                  <div className="flex justify-center mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (mostrarTodasProximas) {
+                          setMostrarTodasProximas(false);
+                        } else {
+                          cargarProximasVisitas(50);
+                          setMostrarTodasProximas(true);
+                        }
+                      }}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                    >
+                      {mostrarTodasProximas
+                        ? "Mostrar menos"
+                        : `Mostrar más (${proximasVisitas.length - 5} más)`}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Gráficas principales */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -987,6 +1323,318 @@ const Dashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Detalles */}
+      <Dialog open={modalDetalles} onOpenChange={setModalDetalles}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              Detalles de la Visita
+            </DialogTitle>
+            <DialogDescription>
+              Código: {visitaSeleccionada?.codigoVisita}
+            </DialogDescription>
+          </DialogHeader>
+          {visitaSeleccionada && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-semibold text-gray-600">
+                    Fecha
+                  </Label>
+                  <p className="text-gray-900">
+                    {formatearFechaCompleta(
+                      visitaSeleccionada.fecha,
+                      visitaSeleccionada.dia
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-gray-600">
+                    Hora
+                  </Label>
+                  <p className="text-gray-900">{visitaSeleccionada.hora}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-gray-600">
+                    N° Visitantes
+                  </Label>
+                  <p className="text-gray-900 font-bold">
+                    {visitaSeleccionada.numVisitantes}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-semibold text-gray-600">
+                    Estado
+                  </Label>
+                  <div>
+                    <span
+                      className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                        visitaSeleccionada.estado === "confirmada"
+                          ? "bg-green-100 text-green-700"
+                          : visitaSeleccionada.estado === "realizada"
+                          ? "bg-blue-100 text-blue-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {visitaSeleccionada.estado}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="border-t pt-4">
+                <Label className="text-sm font-semibold text-gray-600 mb-2 block">
+                  Institución
+                </Label>
+                <p className="text-gray-900">
+                  {visitaSeleccionada.institucion || "Sin institución"}
+                </p>
+              </div>
+              <div className="border-t pt-4">
+                <Label className="text-sm font-semibold text-gray-600 mb-2 block">
+                  Visita al Arboreto
+                </Label>
+                <p className="text-gray-900">{visitaSeleccionada.arboretum}</p>
+              </div>
+              <div className="border-t pt-4">
+                <Label className="text-sm font-semibold text-gray-600 mb-3 block">
+                  Datos de Contacto
+                </Label>
+                <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div>
+                    <Label className="text-xs text-gray-500">Nombre</Label>
+                    <p className="text-gray-900 font-medium">
+                      {visitaSeleccionada.contacto.nombre}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Teléfono</Label>
+                    <p className="text-gray-900">
+                      {visitaSeleccionada.contacto.telefono}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Comuna</Label>
+                    <p className="text-gray-900">
+                      {visitaSeleccionada.contacto.comuna}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Correo</Label>
+                    <p className="text-gray-900 text-sm">
+                      {visitaSeleccionada.contacto.correo}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Edición */}
+      <Dialog
+        open={modalEdicion}
+        onOpenChange={(open) => !open && cerrarModalEdicion()}
+      >
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-blue-600" />
+              Editar Visita
+            </DialogTitle>
+            <DialogDescription>
+              Código: {visitaSeleccionada?.codigoVisita}
+            </DialogDescription>
+          </DialogHeader>
+          {visitaSeleccionada && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="fecha">Fecha</Label>
+                  <Input
+                    id="fecha"
+                    type="date"
+                    value={formEdicion.fecha}
+                    onChange={(e) => handleFormChange("fecha", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="hora">Hora</Label>
+                  <Select
+                    value={formEdicion.hora}
+                    onValueChange={(value) => handleFormChange("hora", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="09:00">09:00</SelectItem>
+                      <SelectItem value="10:00">10:00</SelectItem>
+                      <SelectItem value="11:00">11:00</SelectItem>
+                      <SelectItem value="12:00">12:00</SelectItem>
+                      <SelectItem value="15:00">15:00</SelectItem>
+                      <SelectItem value="16:00">16:00</SelectItem>
+                      <SelectItem value="17:00">17:00</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="institucion">Institución (opcional)</Label>
+                <Input
+                  id="institucion"
+                  value={formEdicion.institucion}
+                  onChange={(e) =>
+                    handleFormChange("institucion", e.target.value)
+                  }
+                  placeholder="Nombre de la institución"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="numVisitantes">Número de Visitantes</Label>
+                  <Input
+                    id="numVisitantes"
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={formEdicion.numVisitantes}
+                    onChange={(e) =>
+                      handleFormChange(
+                        "numVisitantes",
+                        parseInt(e.target.value)
+                      )
+                    }
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="arboretum">Visita al Arboreto</Label>
+                  <Select
+                    value={formEdicion.arboretum}
+                    onValueChange={(value) =>
+                      handleFormChange("arboretum", value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Si">Sí</SelectItem>
+                      <SelectItem value="No">No</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <Label className="text-sm font-semibold mb-3 block">
+                  Datos de Contacto
+                </Label>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="nombreContacto">Nombre Completo</Label>
+                    <Input
+                      id="nombreContacto"
+                      value={formEdicion.nombreContacto}
+                      onChange={(e) =>
+                        handleFormChange("nombreContacto", e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="telefonoContacto">Teléfono</Label>
+                      <Input
+                        id="telefonoContacto"
+                        value={formEdicion.telefonoContacto}
+                        onChange={(e) =>
+                          handleFormChange("telefonoContacto", e.target.value)
+                        }
+                        placeholder="+56912345678"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="comunaContacto">Comuna</Label>
+                      <Input
+                        id="comunaContacto"
+                        value={formEdicion.comunaContacto}
+                        onChange={(e) =>
+                          handleFormChange("comunaContacto", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="correoContacto">Correo Electrónico</Label>
+                    <Input
+                      id="correoContacto"
+                      type="email"
+                      value={formEdicion.correoContacto}
+                      onChange={(e) =>
+                        handleFormChange("correoContacto", e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={cerrarModalEdicion}
+                  disabled={guardandoEdicion}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={guardarEdicion}
+                  disabled={guardandoEdicion || !hayCambiosSinGuardar}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {guardandoEdicion ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white mr-2"></div>
+                  ) : (
+                    <Save className="h-4 w-4 mr-2" />
+                  )}
+                  Guardar Cambios
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* AlertDialog para cambios sin guardar */}
+      <AlertDialog
+        open={mostrarAlertaCambios}
+        onOpenChange={setMostrarAlertaCambios}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Deseas salir sin guardar?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tienes cambios sin guardar. Si sales ahora, perderás todos los
+              cambios realizados.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setMostrarAlertaCambios(false)}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmarSalirSinGuardar}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Salir sin guardar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Footer />
     </div>
