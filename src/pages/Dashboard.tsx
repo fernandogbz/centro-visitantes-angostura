@@ -72,6 +72,7 @@ import {
   Edit,
   X,
   Save,
+  RefreshCw,
 } from "lucide-react";
 import {
   visitasAPI,
@@ -149,6 +150,13 @@ const Dashboard = () => {
   const [mostrarAlertaCambios, setMostrarAlertaCambios] = useState(false);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
+  // Estados para auto-actualización
+  const [ultimaActualizacion, setUltimaActualizacion] = useState<Date>(
+    new Date()
+  );
+  const [refrescando, setRefrescando] = useState(false);
+  const [tiempoTranscurrido, setTiempoTranscurrido] = useState(0);
+
   // Verificar autenticación
   useEffect(() => {
     const encryptedKey = window.localStorage.getItem("accessKey");
@@ -166,6 +174,30 @@ const Dashboard = () => {
   useEffect(() => {
     cargarProximasVisitas();
   }, []);
+
+  // Auto-actualización cada 5 minutos
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      cargarEstadisticas();
+      cargarProximasVisitas();
+      setUltimaActualizacion(new Date());
+    }, 5 * 60 * 1000); // 5 minutos
+
+    return () => clearInterval(intervalo);
+  }, [mesSeleccionado, anoSeleccionado]);
+
+  // Actualizar el tiempo transcurrido cada minuto
+  useEffect(() => {
+    const intervalo = setInterval(() => {
+      const ahora = new Date();
+      const diferencia = Math.floor(
+        (ahora.getTime() - ultimaActualizacion.getTime()) / 1000
+      );
+      setTiempoTranscurrido(diferencia);
+    }, 60000); // Cada minuto
+
+    return () => clearInterval(intervalo);
+  }, [ultimaActualizacion]);
 
   const handleLogout = () => {
     localStorage.removeItem("accessKey");
@@ -189,6 +221,7 @@ const Dashboard = () => {
       console.log("🏘️ Comunas:", data.rankingComunas);
 
       setEstadisticas(data);
+      setUltimaActualizacion(new Date());
     } catch (error) {
       console.error("❌ Error al cargar estadísticas:", error);
       toast({
@@ -226,6 +259,7 @@ const Dashboard = () => {
       setLoadingProximas(true);
       const data = await visitasAPI.obtenerProximas(limite);
       setProximasVisitas(data.visitas);
+      setUltimaActualizacion(new Date());
     } catch (error) {
       console.error("❌ Error al cargar próximas visitas:", error);
       toast({
@@ -236,6 +270,31 @@ const Dashboard = () => {
     } finally {
       setLoadingProximas(false);
     }
+  };
+
+  const refrescarDatos = async () => {
+    setRefrescando(true);
+    await Promise.all([
+      cargarEstadisticas(),
+      cargarProximasVisitas(mostrarTodasProximas ? undefined : 5),
+    ]);
+    setRefrescando(false);
+  };
+
+  const formatearUltimaActualizacion = () => {
+    const ahora = new Date();
+    const diferencia = Math.floor(
+      (ahora.getTime() - ultimaActualizacion.getTime()) / 1000
+    );
+
+    if (diferencia < 60) return "Menos de 1 minuto";
+    const minutos = Math.floor(diferencia / 60);
+    if (minutos === 1) return "Hace 1 minuto";
+    if (minutos < 60) return `Hace ${minutos} minutos`;
+    return ultimaActualizacion.toLocaleTimeString("es-ES", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   // Funciones para modal de detalles
@@ -317,8 +376,15 @@ const Dashboard = () => {
       setHayCambiosSinGuardar(false);
       setVisitaSeleccionada(null);
 
-      // Recargar próximas visitas
-      cargarProximasVisitas(mostrarTodasProximas ? 50 : 5);
+      // Recargar datos: próximas visitas, estadísticas y detalle si los modales están abiertos
+      await Promise.all([
+        cargarProximasVisitas(mostrarTodasProximas ? 50 : 5),
+        cargarEstadisticas(),
+        modalVisitantes || modalReservas
+          ? cargarVisitasDetalle()
+          : Promise.resolve(),
+      ]);
+      setUltimaActualizacion(new Date());
     } catch (error: any) {
       console.error("❌ Error al guardar:", error);
       toast({
@@ -342,8 +408,15 @@ const Dashboard = () => {
         description: "Estado actualizado correctamente",
       });
 
-      // Recargar próximas visitas
-      cargarProximasVisitas(mostrarTodasProximas ? 50 : 5);
+      // Recargar datos: próximas visitas, estadísticas y detalle si los modales están abiertos
+      await Promise.all([
+        cargarProximasVisitas(mostrarTodasProximas ? 50 : 5),
+        cargarEstadisticas(),
+        modalVisitantes || modalReservas
+          ? cargarVisitasDetalle()
+          : Promise.resolve(),
+      ]);
+      setUltimaActualizacion(new Date());
     } catch (error: any) {
       console.error("❌ Error al cambiar estado:", error);
       toast({
@@ -601,15 +674,33 @@ const Dashboard = () => {
         {/* Tabla de Próximas Visitas */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-blue-600" />
-              {obtenerDiaSemana(new Date())},{" "}
-              {new Date().toLocaleDateString("es-ES", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-blue-600" />
+                {obtenerDiaSemana(new Date())},{" "}
+                {new Date().toLocaleDateString("es-ES", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+              </CardTitle>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500">
+                  {formatearUltimaActualizacion()}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={refrescarDatos}
+                  disabled={refrescando}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${refrescando ? "animate-spin" : ""}`}
+                  />
+                </Button>
+              </div>
+            </div>
             <CardDescription>
               Reservas confirmadas para el día de hoy
             </CardDescription>
@@ -980,15 +1071,42 @@ const Dashboard = () => {
       <Dialog open={modalVisitantes} onOpenChange={setModalVisitantes}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              Detalle de Visitantes - {MESES[mesSeleccionado - 1]}{" "}
-              {anoSeleccionado}
-            </DialogTitle>
-            <DialogDescription>
-              Total de {estadisticas?.totalVisitantes || 0} visitantes en{" "}
-              {estadisticas?.totalVisitas || 0} reservas
-            </DialogDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5 text-blue-600" />
+                  Detalle de Visitantes - {MESES[mesSeleccionado - 1]}{" "}
+                  {anoSeleccionado}
+                </DialogTitle>
+                <DialogDescription>
+                  Total de {estadisticas?.totalVisitantes || 0} visitantes en{" "}
+                  {estadisticas?.totalVisitas || 0} reservas
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">
+                  {formatearUltimaActualizacion()}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    setLoadingModal(true);
+                    await Promise.all([
+                      cargarVisitasDetalle(),
+                      new Promise((resolve) => setTimeout(resolve, 1000)),
+                    ]);
+                    setLoadingModal(false);
+                  }}
+                  disabled={loadingModal}
+                  className="flex items-center gap-2 mr-4"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${loadingModal ? "animate-spin" : ""}`}
+                  />
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
           {loadingModal ? (
             <div className="flex justify-center py-8">
@@ -1015,7 +1133,7 @@ const Dashboard = () => {
                         >
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start">
-                              <div>
+                              <div className="flex-1">
                                 <p className="font-semibold text-lg">
                                   {visita.contacto.nombre}
                                 </p>
@@ -1038,6 +1156,26 @@ const Dashboard = () => {
                                 🏢 {visita.institucion || "Sin institución"}
                               </p>
                             </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => abrirModalDetalles(visita)}
+                                className="flex items-center gap-1"
+                              >
+                                <Eye className="h-4 w-4" />
+                                Ver
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => abrirModalEdicion(visita)}
+                                className="flex items-center gap-1"
+                              >
+                                <Edit className="h-4 w-4" />
+                                Editar
+                              </Button>
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
@@ -1054,14 +1192,41 @@ const Dashboard = () => {
       <Dialog open={modalReservas} onOpenChange={setModalReservas}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              Todas las Reservas - {MESES[mesSeleccionado - 1]}{" "}
-              {anoSeleccionado}
-            </DialogTitle>
-            <DialogDescription>
-              {estadisticas?.totalVisitas || 0} reservas totales
-            </DialogDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  Todas las Reservas - {MESES[mesSeleccionado - 1]}{" "}
+                  {anoSeleccionado}
+                </DialogTitle>
+                <DialogDescription>
+                  {estadisticas?.totalVisitas || 0} reservas totales
+                </DialogDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">
+                  {formatearUltimaActualizacion()}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    setLoadingModal(true);
+                    await Promise.all([
+                      cargarVisitasDetalle(),
+                      new Promise((resolve) => setTimeout(resolve, 1000)),
+                    ]);
+                    setLoadingModal(false);
+                  }}
+                  disabled={loadingModal}
+                  className="flex items-center gap-2 mr-4"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${loadingModal ? "animate-spin" : ""}`}
+                  />
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
           {loadingModal ? (
             <div className="flex justify-center py-8">
@@ -1117,21 +1282,26 @@ const Dashboard = () => {
                               <strong>🏢 Institución:</strong>{" "}
                               {visita.institucion || "N/A"}
                             </p>
-                            <p>
-                              <strong>🌳 Arboreto:</strong> {visita.arboretum}
-                            </p>
-                            <p>
-                              <strong>📍 Comuna:</strong>{" "}
-                              {visita.contacto.comuna}
-                            </p>
-                            <p>
-                              <strong>📞 Teléfono:</strong>{" "}
-                              {visita.contacto.telefono}
-                            </p>
-                            <p>
-                              <strong>📧 Correo:</strong>{" "}
-                              {visita.contacto.correo}
-                            </p>
+                            <div className="flex gap-2 mt-3 pt-2 border-t">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => abrirModalDetalles(visita)}
+                                className="flex items-center gap-1 flex-1"
+                              >
+                                <Eye className="h-4 w-4" />
+                                Ver Detalle
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => abrirModalEdicion(visita)}
+                                className="flex items-center gap-1 flex-1"
+                              >
+                                <Edit className="h-4 w-4" />
+                                Editar
+                              </Button>
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
