@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -15,7 +15,7 @@ export interface CrearVisitaData {
   hora: string;
   institucion?: string;
   numVisitantes: number;
-  arboretum: 'Si' | 'No';
+  arboretum: "Si" | "No";
   contacto: {
     nombre: string;
     telefono: string;
@@ -62,30 +62,73 @@ export interface EstadisticasResponse {
   }>;
 }
 
+export interface VisitaDetalle {
+  codigoVisita: string;
+  fecha: string;
+  hora: string;
+  dia: string;
+  numVisitantes: number;
+  institucion?: string;
+  arboretum: string;
+  estado: string;
+  contacto: {
+    nombre: string;
+    telefono: string;
+    comuna: string;
+    correo: string;
+  };
+}
+
+export interface ListadoVisitasResponse {
+  visitas: VisitaDetalle[];
+}
+
 // Endpoints de visitas
 export const visitasAPI = {
   crear: async (data: CrearVisitaData): Promise<VisitaResponse> => {
-    const response = await api.post('/visitas', data);
+    const response = await api.post("/visitas", data);
     return response.data;
   },
 
-  consultarDisponibilidad: async (fecha: string): Promise<DisponibilidadResponse> => {
+  consultarDisponibilidad: async (
+    fecha: string
+  ): Promise<DisponibilidadResponse> => {
     const response = await api.get(`/visitas/disponibilidad?fecha=${fecha}`);
     return response.data;
   },
 
-  obtenerEstadisticas: async (mes?: number, ano?: number): Promise<EstadisticasResponse> => {
+  obtenerEstadisticas: async (
+    mes?: number,
+    ano?: number
+  ): Promise<EstadisticasResponse> => {
     const params = new URLSearchParams();
-    if (mes) params.append('mes', mes.toString());
-    if (ano) params.append('ano', ano.toString());
-    
-    console.log('🔍 Llamando a /visitas/estadisticas con:', { mes, ano });
-    console.log('📍 URL completa:', `/visitas/estadisticas?${params.toString()}`);
-    
-    const response = await api.get(`/visitas/estadisticas?${params.toString()}`);
-    
-    console.log('📥 Respuesta recibida:', response.data);
-    
+    if (mes) params.append("mes", mes.toString());
+    if (ano) params.append("ano", ano.toString());
+
+    console.log("🔍 Llamando a /visitas/estadisticas con:", { mes, ano });
+    console.log(
+      "📍 URL completa:",
+      `/visitas/estadisticas?${params.toString()}`
+    );
+
+    const response = await api.get(
+      `/visitas/estadisticas?${params.toString()}`
+    );
+
+    console.log("📥 Respuesta recibida:", response.data);
+
+    return response.data;
+  },
+
+  obtenerListado: async (
+    mes?: number,
+    ano?: number
+  ): Promise<ListadoVisitasResponse> => {
+    const params = new URLSearchParams();
+    if (mes) params.append("mes", mes.toString());
+    if (ano) params.append("ano", ano.toString());
+
+    const response = await api.get(`/visitas/listado?${params.toString()}`);
     return response.data;
   },
 };
@@ -96,16 +139,16 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       // Error de la API
-      console.error('Error API:', error.response.data);
-      throw new Error(error.response.data.error || 'Error en la petición');
+      console.error("Error API:", error.response.data);
+      throw new Error(error.response.data.error || "Error en la petición");
     } else if (error.request) {
       // No hubo respuesta
-      console.error('Sin respuesta del servidor');
-      throw new Error('No se pudo conectar con el servidor');
+      console.error("Sin respuesta del servidor");
+      throw new Error("No se pudo conectar con el servidor");
     } else {
       // Error al configurar la petición
-      console.error('Error:', error.message);
-      throw new Error('Error al realizar la petición');
+      console.error("Error:", error.message);
+      throw new Error("Error al realizar la petición");
     }
   }
 );
@@ -168,12 +211,12 @@ export const disponibilidadAPI = {
   validarReserva: async (
     data: ValidarReservaRequest
   ): Promise<ValidarReservaResponse> => {
-    const response = await api.post('/disponibilidad/validar', data);
+    const response = await api.post("/disponibilidad/validar", data);
     return response.data;
   },
 
   obtenerDiasBloqueados: async (): Promise<DiaBloqueado[]> => {
-    const response = await api.get('/disponibilidad/dias-bloqueados/all');
+    const response = await api.get("/disponibilidad/dias-bloqueados/all");
     return response.data;
   },
 };

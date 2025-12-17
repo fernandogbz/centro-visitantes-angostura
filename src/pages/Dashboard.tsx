@@ -11,6 +11,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -45,7 +52,11 @@ import {
   Sparkles,
   LogOut,
 } from "lucide-react";
-import { visitasAPI, EstadisticasResponse } from "@/services/api";
+import {
+  visitasAPI,
+  EstadisticasResponse,
+  VisitaDetalle,
+} from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { decryptKey } from "@/lib/utils";
@@ -93,6 +104,14 @@ const Dashboard = () => {
   );
   const { toast } = useToast();
 
+  // Estados para modales
+  const [modalVisitantes, setModalVisitantes] = useState(false);
+  const [modalReservas, setModalReservas] = useState(false);
+  const [modalPromedio, setModalPromedio] = useState(false);
+  const [modalComunas, setModalComunas] = useState(false);
+  const [visitasDetalle, setVisitasDetalle] = useState<VisitaDetalle[]>([]);
+  const [loadingModal, setLoadingModal] = useState(false);
+
   // Verificar autenticación
   useEffect(() => {
     const encryptedKey = window.localStorage.getItem("accessKey");
@@ -139,6 +158,49 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const cargarVisitasDetalle = async () => {
+    try {
+      setLoadingModal(true);
+      const data = await visitasAPI.obtenerListado(
+        mesSeleccionado,
+        anoSeleccionado
+      );
+      setVisitasDetalle(data.visitas);
+    } catch (error) {
+      console.error("❌ Error al cargar detalle:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo cargar el detalle de visitas",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingModal(false);
+    }
+  };
+
+  // Agrupar visitas por día
+  const agruparPorDia = (visitas: VisitaDetalle[]) => {
+    const grupos: { [key: string]: VisitaDetalle[] } = {};
+    visitas.forEach((visita) => {
+      // Usar la fecha completa como clave para agrupar
+      const fechaKey = visita.fecha;
+      if (!grupos[fechaKey]) {
+        grupos[fechaKey] = [];
+      }
+      grupos[fechaKey].push(visita);
+    });
+    return grupos;
+  };
+
+  // Formatear fecha completa: "Jueves - 18 diciembre 2025"
+  const formatearFechaCompleta = (fechaStr: string, diaStr: string) => {
+    const fecha = new Date(fechaStr);
+    const diaNumero = fecha.getDate();
+    const mes = MESES[fecha.getMonth()].toLowerCase();
+    const ano = fecha.getFullYear();
+    return `${diaStr} - ${diaNumero} ${mes} ${ano}`;
   };
 
   const anos = Array.from(
@@ -284,7 +346,13 @@ const Dashboard = () => {
         </div>
         {/* Cards principales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={async () => {
+              await cargarVisitasDetalle();
+              setModalVisitantes(true);
+            }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Visitantes
@@ -301,7 +369,13 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={async () => {
+              await cargarVisitasDetalle();
+              setModalReservas(true);
+            }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Reservas
@@ -316,7 +390,13 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={async () => {
+              await cargarVisitasDetalle();
+              setModalPromedio(true);
+            }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 Promedio Grupo
@@ -331,7 +411,13 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card
+            className="cursor-pointer hover:shadow-lg transition-shadow"
+            onClick={async () => {
+              await cargarVisitasDetalle();
+              setModalComunas(true);
+            }}
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Top Comuna</CardTitle>
               <Award className="h-4 w-4 text-muted-foreground" />
@@ -553,6 +639,354 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </main>
+
+      {/* Modal Total Visitantes */}
+      <Dialog open={modalVisitantes} onOpenChange={setModalVisitantes}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              Detalle de Visitantes - {MESES[mesSeleccionado - 1]}{" "}
+              {anoSeleccionado}
+            </DialogTitle>
+            <DialogDescription>
+              Total de {estadisticas?.totalVisitantes || 0} visitantes en{" "}
+              {estadisticas?.totalVisitas || 0} reservas
+            </DialogDescription>
+          </DialogHeader>
+          {loadingModal ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(agruparPorDia(visitasDetalle)).map(
+                ([fecha, visitas]) => (
+                  <div key={fecha}>
+                    <div className="sticky top-0 bg-sky-50 border-l-4 border-sky-500 px-4 py-2 mb-3 rounded">
+                      <h3 className="font-bold text-sky-900">
+                        📅 {formatearFechaCompleta(fecha, visitas[0].dia)}
+                      </h3>
+                      <p className="text-xs text-sky-700">
+                        {visitas.length} reserva(s)
+                      </p>
+                    </div>
+                    <div className="space-y-3 pl-2">
+                      {visitas.map((visita) => (
+                        <Card
+                          key={visita.codigoVisita}
+                          className="border-l-4 border-l-sky-500"
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-semibold text-lg">
+                                  {visita.contacto.nombre}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Código: {visita.codigoVisita}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold text-sky-500">
+                                  {visita.numVisitantes}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  visitantes
+                                </p>
+                              </div>
+                            </div>
+                            <div className="mt-2 text-sm text-gray-600">
+                              <p>🕐 {visita.hora}</p>
+                              <p>
+                                🏢 {visita.institucion || "Sin institución"}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Total Reservas */}
+      <Dialog open={modalReservas} onOpenChange={setModalReservas}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5 text-blue-600" />
+              Todas las Reservas - {MESES[mesSeleccionado - 1]}{" "}
+              {anoSeleccionado}
+            </DialogTitle>
+            <DialogDescription>
+              {estadisticas?.totalVisitas || 0} reservas totales
+            </DialogDescription>
+          </DialogHeader>
+          {loadingModal ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(agruparPorDia(visitasDetalle)).map(
+                ([fecha, visitas]) => (
+                  <div key={fecha}>
+                    <div className="sticky top-0 bg-blue-50 border-l-4 border-blue-600 px-4 py-2 mb-3 rounded">
+                      <h3 className="font-bold text-blue-900">
+                        📅 {formatearFechaCompleta(fecha, visitas[0].dia)}
+                      </h3>
+                      <p className="text-xs text-blue-700">
+                        {visitas.length} reserva(s)
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-2">
+                      {visitas.map((visita) => (
+                        <Card
+                          key={visita.codigoVisita}
+                          className="border-t-4 border-t-blue-600"
+                        >
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base flex items-center justify-between">
+                              <span>{visita.contacto.nombre}</span>
+                              <span
+                                className={`px-2 py-1 rounded text-xs ${
+                                  visita.estado === "confirmada"
+                                    ? "bg-green-100 text-green-700"
+                                    : visita.estado === "realizada"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : "bg-gray-100 text-gray-700"
+                                }`}
+                              >
+                                {visita.estado}
+                              </span>
+                            </CardTitle>
+                            <CardDescription className="text-xs">
+                              {visita.codigoVisita}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="text-sm space-y-1">
+                            <p>
+                              <strong>🕐 Hora:</strong> {visita.hora}
+                            </p>
+                            <p>
+                              <strong>👥 Visitantes:</strong>{" "}
+                              {visita.numVisitantes}
+                            </p>
+                            <p>
+                              <strong>🏢 Institución:</strong>{" "}
+                              {visita.institucion || "N/A"}
+                            </p>
+                            <p>
+                              <strong>🌳 Arboreto:</strong> {visita.arboretum}
+                            </p>
+                            <p>
+                              <strong>📍 Comuna:</strong>{" "}
+                              {visita.contacto.comuna}
+                            </p>
+                            <p>
+                              <strong>📞 Teléfono:</strong>{" "}
+                              {visita.contacto.telefono}
+                            </p>
+                            <p>
+                              <strong>📧 Correo:</strong>{" "}
+                              {visita.contacto.correo}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Promedio Grupo */}
+      <Dialog open={modalPromedio} onOpenChange={setModalPromedio}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-600" />
+              Análisis de Grupos - {MESES[mesSeleccionado - 1]}{" "}
+              {anoSeleccionado}
+            </DialogTitle>
+            <DialogDescription>
+              Promedio de {promedio} personas por grupo
+            </DialogDescription>
+          </DialogHeader>
+          {loadingModal ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {Object.entries(agruparPorDia(visitasDetalle)).map(
+                ([fecha, visitas]) => (
+                  <div key={fecha}>
+                    <div className="sticky top-0 bg-green-50 border-l-4 border-green-600 px-4 py-2 mb-3 rounded">
+                      <h3 className="font-bold text-green-900">
+                        📅 {formatearFechaCompleta(fecha, visitas[0].dia)}
+                      </h3>
+                      <p className="text-xs text-green-700">
+                        {visitas.length} reserva(s) - Promedio:{" "}
+                        {Math.round(
+                          visitas.reduce((sum, v) => sum + v.numVisitantes, 0) /
+                            visitas.length
+                        )}{" "}
+                        personas
+                      </p>
+                    </div>
+                    <div className="space-y-3 pl-2">
+                      {visitas
+                        .sort((a, b) => b.numVisitantes - a.numVisitantes)
+                        .map((visita) => (
+                          <Card
+                            key={visita.codigoVisita}
+                            className="border-l-4 border-l-green-600"
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-center">
+                                <div className="flex-1">
+                                  <p className="font-semibold">
+                                    {visita.contacto.nombre}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {visita.institucion || "Sin institución"}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    🕐 {visita.hora}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-3xl font-bold text-green-600">
+                                    {visita.numVisitantes}
+                                  </div>
+                                  <p className="text-xs text-gray-500">
+                                    personas
+                                  </p>
+                                  <div className="mt-1">
+                                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                                      <div
+                                        className="bg-green-600 h-2 rounded-full"
+                                        style={{
+                                          width: `${Math.min(
+                                            (visita.numVisitantes / 30) * 100,
+                                            100
+                                          )}%`,
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Top Comunas */}
+      <Dialog open={modalComunas} onOpenChange={setModalComunas}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-blue-600" />
+              Comunas Participantes - {MESES[mesSeleccionado - 1]}{" "}
+              {anoSeleccionado}
+            </DialogTitle>
+            <DialogDescription>Distribución por comuna</DialogDescription>
+          </DialogHeader>
+          {loadingModal ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {estadisticas?.rankingComunas.map((item, index) => {
+                const visitasComuna = visitasDetalle.filter(
+                  (v) => v.contacto.comuna === item.comuna
+                );
+                return (
+                  <Card
+                    key={item.comuna}
+                    className="border-l-4 border-l-orange-500"
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="text-2xl font-bold text-orange-500">
+                            #{index + 1}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-lg">
+                              {item.comuna}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {item.visitantes} visitantes en{" "}
+                              {visitasComuna.length} reservas
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-3xl font-bold text-orange-500">
+                            {item.visitantes}
+                          </div>
+                          <p className="text-xs text-gray-500">personas</p>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-orange-500 h-2 rounded-full"
+                            style={{
+                              width: `${
+                                (item.visitantes /
+                                  (estadisticas?.totalVisitantes || 1)) *
+                                100
+                              }%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <details className="mt-2">
+                        <summary className="text-xs text-blue-600 cursor-pointer hover:underline">
+                          Ver {visitasComuna.length} reservas
+                        </summary>
+                        <div className="mt-2 space-y-1 pl-4 border-l-2 border-gray-200">
+                          {visitasComuna.map((v) => (
+                            <div
+                              key={v.codigoVisita}
+                              className="text-xs text-gray-600"
+                            >
+                              <span className="font-medium">
+                                {v.contacto.nombre}
+                              </span>{" "}
+                              - {v.numVisitantes} personas ({v.dia})
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Footer />
     </div>
