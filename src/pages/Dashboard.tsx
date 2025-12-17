@@ -326,6 +326,13 @@ const Dashboard = () => {
     setHayCambiosSinGuardar(true);
   };
 
+  const handleKeyDownEdicion = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && hayCambiosSinGuardar && !guardandoEdicion) {
+      e.preventDefault();
+      guardarEdicion();
+    }
+  };
+
   const cerrarModalEdicion = () => {
     if (hayCambiosSinGuardar) {
       setMostrarAlertaCambios(true);
@@ -1628,6 +1635,7 @@ const Dashboard = () => {
                     type="date"
                     value={formEdicion.fecha}
                     onChange={(e) => handleFormChange("fecha", e.target.value)}
+                    onKeyDown={handleKeyDownEdicion}
                   />
                 </div>
                 <div>
@@ -1660,6 +1668,7 @@ const Dashboard = () => {
                   onChange={(e) =>
                     handleFormChange("institucion", e.target.value)
                   }
+                  onKeyDown={handleKeyDownEdicion}
                   placeholder="Nombre de la institución"
                 />
               </div>
@@ -1679,6 +1688,7 @@ const Dashboard = () => {
                         parseInt(e.target.value)
                       )
                     }
+                    onKeyDown={handleKeyDownEdicion}
                   />
                 </div>
                 <div>
@@ -1713,6 +1723,7 @@ const Dashboard = () => {
                       onChange={(e) =>
                         handleFormChange("nombreContacto", e.target.value)
                       }
+                      onKeyDown={handleKeyDownEdicion}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
@@ -1724,6 +1735,7 @@ const Dashboard = () => {
                         onChange={(e) =>
                           handleFormChange("telefonoContacto", e.target.value)
                         }
+                        onKeyDown={handleKeyDownEdicion}
                         placeholder="+56912345678"
                       />
                     </div>
@@ -1735,6 +1747,7 @@ const Dashboard = () => {
                         onChange={(e) =>
                           handleFormChange("comunaContacto", e.target.value)
                         }
+                        onKeyDown={handleKeyDownEdicion}
                       />
                     </div>
                   </div>
@@ -1747,6 +1760,7 @@ const Dashboard = () => {
                       onChange={(e) =>
                         handleFormChange("correoContacto", e.target.value)
                       }
+                      onKeyDown={handleKeyDownEdicion}
                     />
                   </div>
                 </div>

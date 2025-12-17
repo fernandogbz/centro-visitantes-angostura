@@ -167,6 +167,13 @@ const Reservar = () => {
     return true;
   };
 
+  const handleKeyDownReserva = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !loading) {
+      e.preventDefault();
+      handleContinuar();
+    }
+  };
+
   const handleContinuar = async () => {
     if (paso === 1 && validarPaso1()) {
       setPaso(2);
@@ -444,6 +451,7 @@ const Reservar = () => {
                         onChange={(e) =>
                           handleInputChange("institucion", e.target.value)
                         }
+                        onKeyDown={handleKeyDownReserva}
                         placeholder="Ej: Colegio Los Ángeles"
                       />
                     </div>
@@ -462,6 +470,7 @@ const Reservar = () => {
                     onChange={(e) =>
                       handleInputChange("numVisitantes", e.target.value)
                     }
+                    onKeyDown={handleKeyDownReserva}
                     placeholder="1-100"
                   />
                 </div>
@@ -511,6 +520,7 @@ const Reservar = () => {
                         onChange={(e) =>
                           handleInputChange("nombreContacto", e.target.value)
                         }
+                        onKeyDown={handleKeyDownReserva}
                         placeholder="Juan Pérez"
                       />
                     </div>
@@ -522,6 +532,7 @@ const Reservar = () => {
                         onChange={(e) =>
                           handleInputChange("telefono", e.target.value)
                         }
+                        onKeyDown={handleKeyDownReserva}
                         placeholder="+56912345678"
                       />
                     </div>
@@ -533,6 +544,7 @@ const Reservar = () => {
                         onChange={(e) =>
                           handleInputChange("comuna", e.target.value)
                         }
+                        onKeyDown={handleKeyDownReserva}
                         placeholder="Los Ángeles"
                       />
                     </div>
@@ -545,6 +557,7 @@ const Reservar = () => {
                         onChange={(e) =>
                           handleInputChange("email", e.target.value)
                         }
+                        onKeyDown={handleKeyDownReserva}
                         placeholder="ejemplo@correo.com"
                       />
                     </div>

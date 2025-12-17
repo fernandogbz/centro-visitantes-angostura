@@ -35,9 +35,9 @@ export const PasskeyModal = ({ open, onOpenChange }: PasskeyModalProps) => {
   };
 
   const validatePasskey = (
-    e: React.MouseEvent<HTMLButtonElement, MouseEvent>
+    e?: React.MouseEvent<HTMLButtonElement, MouseEvent> | React.KeyboardEvent
   ) => {
-    e.preventDefault();
+    e?.preventDefault();
 
     if (passkey === import.meta.env.VITE_ADMIN_PASSKEY) {
       const encryptedKey = encryptKey(passkey);
@@ -48,6 +48,12 @@ export const PasskeyModal = ({ open, onOpenChange }: PasskeyModalProps) => {
       navigate("/admin");
     } else {
       setError("Clave de acceso inválida. Por favor intenta de nuevo.");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && passkey.length === 6) {
+      validatePasskey(e);
     }
   };
 
@@ -72,6 +78,7 @@ export const PasskeyModal = ({ open, onOpenChange }: PasskeyModalProps) => {
             maxLength={6}
             value={passkey}
             onChange={(value) => setPasskey(value)}
+            onKeyDown={handleKeyDown}
           >
             <InputOTPGroup className="gap-2 w-full justify-center">
               <InputOTPSlot className="w-12 h-12" index={0} />
