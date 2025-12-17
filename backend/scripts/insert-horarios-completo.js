@@ -111,22 +111,23 @@ async function insertHorariosCompleto() {
 }
 
 // Ejecutar script solo si se llama directamente (no cuando se importa)
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
-  mongoose.connect(
-    process.env.MONGODB_URI || "mongodb://localhost:27017/angostura"
-  ).then(async () => {
-    console.log("✅ Conectado a MongoDB");
-    const resultado = await insertHorariosCompleto();
-    console.log("📊 Resumen:");
-    console.log(`   • Nuevas: ${resultado.insertados}`);
-    console.log(`   • Actualizadas: ${resultado.actualizados}`);
-    console.log(`   • Total: ${resultado.total}`);
-    console.log("🎉 Proceso completado exitosamente");
-    process.exit(0);
-  }).catch((error) => {
-    console.error("💥 Error fatal:", error);
-    process.exit(1);
-  });
+if (import.meta.url === `file://${process.argv[1].replace(/\\/g, "/")}`) {
+  mongoose
+    .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/angostura")
+    .then(async () => {
+      console.log("✅ Conectado a MongoDB");
+      const resultado = await insertHorariosCompleto();
+      console.log("📊 Resumen:");
+      console.log(`   • Nuevas: ${resultado.insertados}`);
+      console.log(`   • Actualizadas: ${resultado.actualizados}`);
+      console.log(`   • Total: ${resultado.total}`);
+      console.log("🎉 Proceso completado exitosamente");
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error("💥 Error fatal:", error);
+      process.exit(1);
+    });
 }
 
 export default insertHorariosCompleto;
