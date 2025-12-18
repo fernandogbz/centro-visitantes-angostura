@@ -2,6 +2,7 @@ import express from "express";
 import { body, query, validationResult } from "express-validator";
 import Visita from "../models/Visita.js";
 import { generarCodigoVisita } from "../utils/generarCodigo.js";
+import { generarQRBase64 } from "../utils/generarQR.js";
 
 const router = express.Router();
 
@@ -111,6 +112,13 @@ router.post(
 
       await nuevaVisita.save();
 
+      // Generar QR code en base64
+      const baseUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+      const qrCodeBase64 = await generarQRBase64(
+        nuevaVisita.codigoVisita,
+        baseUrl
+      );
+
       res.status(201).json({
         mensaje: "Reserva creada exitosamente",
         visita: {
@@ -120,6 +128,7 @@ router.post(
           numVisitantes: nuevaVisita.numVisitantes,
           estado: nuevaVisita.estado,
         },
+        qrCode: qrCodeBase64,
       });
     } catch (error) {
       console.error("Error al crear visita:", error);
