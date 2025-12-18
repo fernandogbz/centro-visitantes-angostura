@@ -198,7 +198,7 @@ const Reservar = () => {
 
         setCodigoVisita(response.visita.codigoVisita);
 
-        // Envio correo de confirmacion
+        // Envio correo de confirmacion con QR
         try {
           await sendEmail({
             email: formData.email,
@@ -210,6 +210,7 @@ const Reservar = () => {
             hora: selectedHora,
             numVisitantes: parseInt(formData.numVisitantes),
             arboretum: formData.arboretum,
+            qrCode: response.qrCode, // Enviar el QR generado por el backend
           });
         } catch (emailError) {
           console.error("Error al enviar email:", emailError);
