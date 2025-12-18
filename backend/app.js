@@ -3,7 +3,9 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import visitasRoutes from "./routes/visitas.js";
-import disponibilidadRoutes from "./routes/disponibilidadRoute.js"; // ← VERIFICAR esta línea
+import disponibilidadRoutes from "./routes/disponibilidadRoute.js"; 
+import authRoutes from './routes/authRoute.js';
+
 
 const app = express();
 
@@ -11,8 +13,6 @@ const app = express();
 app.use(helmet());
 
 // CORS - Configurado para desarrollo local
-
-
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
