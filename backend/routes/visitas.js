@@ -3,39 +3,159 @@ import { body, query, validationResult } from "express-validator";
 import Visita from "../models/Visita.js";
 import { generarCodigoVisita } from "../utils/generarCodigo.js";
 import { generarQRBase64 } from "../utils/generarQR.js";
+import { verificarAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
+// ====================================
+// 🟢 RUTAS PÚBLICAS - ESPECÍFICAS
+// ====================================
+
 /**
- * POST /api/visitas - Crear nueva reserva
+ * GET /api/visitas/disponibilidad?fecha=YYYY-MM-DD
+ * Consultar disponibilidad de una fecha
+ */
+router.get(
+  "/disponibilidad",
+  [query("fecha").isISO8601().withMessage("Fecha inválida")],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: "Parámetros inválidos",
+          detalles: errors.array(),
+        });
+      }
+
+      const fecha = new Date(req.query.fecha);
+
+      const inicioDelDia = new Date(fecha);
+      inicioDelDia.setHours(0, 0, 0, 0);
+
+      const finDelDia = new Date(fecha);
+      finDelDia.setHours(23, 59, 59, 999);
+
+      const visitasDelDia = await Visita.find({
+        fecha: { $gte: inicioDelDia, $lte: finDelDia },
+        estado: { $ne: "cancelada" },
+      });
+
+      const aforoReservado = visitasDelDia.reduce(
+        (sum, v) => sum + v.numVisitantes,
+        0
+      );
+
+      res.json({
+        aforoMaximo: AFORO_MAXIMO,
+        reservado: aforoReservado,
+        disponible: AFORO_MAXIMO - aforoReservado,
+      });
+    } catch (error) {
+      console.error("Error al consultar disponibilidad:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  }
+);
+
+/**
+ * GET /api/visitas/proximas
+ * Obtener próximas visitas desde hoy (máximo 5)
+ */
+router.get("/proximas", async (req, res) => {
+  try {
+    const { limite } = req.query;
+    const limit = limite ? parseInt(limite) : 5;
+
+    // Fecha actual a las 00:00:00
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    // Obtener TODAS las visitas desde hoy en adelante
+    const todasLasVisitas = await Visita.find({
+      fecha: { $gte: hoy },
+      estado: { $in: ["confirmada", "realizada"] },
+    }).sort({ fecha: 1, hora: 1 });
+
+    // Tomar solo las primeras 'limit' visitas
+    const visitas = todasLasVisitas.slice(0, limit);
+
+    res.json({
+      visitas: visitas.map((v) => ({
+        codigoVisita: v.codigoVisita,
+        fecha: v.fecha,
+        hora: v.hora,
+        dia: v.dia,
+        numVisitantes: v.numVisitantes,
+        institucion: v.institucion,
+        arboretum: v.arboretum,
+        estado: v.estado,
+        contacto: {
+          nombre: v.contacto.nombre,
+          telefono: v.contacto.telefono,
+          comuna: v.contacto.comuna,
+          correo: v.contacto.correo,
+        },
+      })),
+    });
+  } catch (error) {
+    console.error("❌ Error al obtener próximas visitas:", error);
+    res.status(500).json({
+      error: "Error al obtener próximas visitas",
+      details: error.message,
+    });
+  }
+});
+
+/**
+ * GET /api/visitas/codigo/:codigo
+ * Buscar visita por código (para validación QR)
+ */
+router.get("/codigo/:codigo", async (req, res) => {
+  try {
+    const { codigo } = req.params;
+
+    const visita = await Visita.findOne({ codigoVisita: codigo });
+
+    if (!visita) {
+      return res.status(404).json({ error: "Visita no encontrada" });
+    }
+
+    res.json({
+      visita: {
+        codigoVisita: visita.codigoVisita,
+        dia: visita.dia,
+        fecha: visita.fecha,
+        hora: visita.hora,
+        institucion: visita.institucion,
+        numVisitantes: visita.numVisitantes,
+        arboretum: visita.arboretum,
+        contacto: visita.contacto,
+        estado: visita.estado,
+      },
+    });
+  } catch (error) {
+    console.error("Error al obtener visita por código:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+/**
+ * POST /api/visitas
+ * Crear nueva reserva
  */
 router.post(
   "/",
   [
     body("fecha").isISO8601().withMessage("Fecha inválida"),
     body("hora")
-      .isIn([
-        "09:00",
-        "10:00",
-        "11:00",
-        "12:00",
-        "13:00",
-        "14:00",
-        "15:00",
-        "16:00",
-      ])
+      .isIn(["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00"])
       .withMessage("Hora no válida"),
-    body("institucion")
-      .optional()
-      .trim()
-      .isLength({ min: 3, max: 200 })
-      .escape(),
+    body("institucion").optional().trim().isLength({ min: 3, max: 200 }).escape(),
     body("numVisitantes")
       .isInt({ min: 1, max: 30 })
       .withMessage("Número de visitantes debe estar entre 1 y 30"),
-    body("arboretum")
-      .isIn(["Si", "No"])
-      .withMessage("Arboretum debe ser Si o No"),
+    body("arboretum").isIn(["Si", "No"]).withMessage("Arboretum debe ser Si o No"),
     body("contacto.nombre")
       .trim()
       .notEmpty()
@@ -137,8 +257,16 @@ router.post(
   }
 );
 
-// Busca si existe el endpoint /estadisticas
-router.get("/estadisticas", async (req, res) => {
+// ====================================
+// 🔒 RUTAS ADMINISTRATIVAS - PROTEGIDAS
+// ====================================
+
+/**
+ * GET /api/visitas/estadisticas
+ * Estadísticas del dashboard (mes/año)
+ * Requiere: Token JWT válido
+ */
+router.get("/estadisticas", verificarAdmin, async (req, res) => {
   try {
     const { mes, ano } = req.query;
     const currentYear = ano ? parseInt(ano) : new Date().getFullYear();
@@ -232,9 +360,11 @@ router.get("/estadisticas", async (req, res) => {
 });
 
 /**
- * GET /api/visitas/listado - Obtener listado completo de visitas
+ * GET /api/visitas/listado
+ * Obtener listado completo de visitas filtrado por mes/año
+ * Requiere: Token JWT válido
  */
-router.get("/listado", async (req, res) => {
+router.get("/listado", verificarAdmin, async (req, res) => {
   try {
     const { mes, ano } = req.query;
     const currentYear = ano ? parseInt(ano) : new Date().getFullYear();
@@ -276,57 +406,11 @@ router.get("/listado", async (req, res) => {
 });
 
 /**
- * GET /api/visitas/proximas - Obtener próximas visitas desde hoy
+ * PATCH /api/visitas/:codigo/estado
+ * Actualizar solo el estado de una visita
+ * Requiere: Token JWT válido
  */
-router.get("/proximas", async (req, res) => {
-  try {
-    const { limite } = req.query;
-    const limit = limite ? parseInt(limite) : 5;
-
-    // Fecha actual a las 00:00:00
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    // Obtener TODAS las visitas desde hoy en adelante
-    const todasLasVisitas = await Visita.find({
-      fecha: { $gte: hoy },
-      estado: { $in: ["confirmada", "realizada"] },
-    }).sort({ fecha: 1, hora: 1 });
-
-    // Tomar solo las primeras 'limit' visitas
-    const visitas = todasLasVisitas.slice(0, limit);
-
-    res.json({
-      visitas: visitas.map((v) => ({
-        codigoVisita: v.codigoVisita,
-        fecha: v.fecha,
-        hora: v.hora,
-        dia: v.dia,
-        numVisitantes: v.numVisitantes,
-        institucion: v.institucion,
-        arboretum: v.arboretum,
-        estado: v.estado,
-        contacto: {
-          nombre: v.contacto.nombre,
-          telefono: v.contacto.telefono,
-          comuna: v.contacto.comuna,
-          correo: v.contacto.correo,
-        },
-      })),
-    });
-  } catch (error) {
-    console.error("❌ Error al obtener próximas visitas:", error);
-    res.status(500).json({
-      error: "Error al obtener próximas visitas",
-      details: error.message,
-    });
-  }
-});
-
-/**
- * PATCH /api/visitas/:codigo/estado - Actualizar estado de una visita
- */
-router.patch("/:codigo/estado", async (req, res) => {
+router.patch("/:codigo/estado", verificarAdmin, async (req, res) => {
   try {
     const { codigo } = req.params;
     const { estado } = req.body;
@@ -353,9 +437,11 @@ router.patch("/:codigo/estado", async (req, res) => {
 });
 
 /**
- * PUT /api/visitas/:codigo - Actualizar visita completa
+ * PUT /api/visitas/:codigo
+ * Actualizar visita completa (todos los campos)
+ * Requiere: Token JWT válido
  */
-router.put("/:codigo", async (req, res) => {
+router.put("/:codigo", verificarAdmin, async (req, res) => {
   try {
     const { codigo } = req.params;
     const {
@@ -414,84 +500,6 @@ router.put("/:codigo", async (req, res) => {
     res
       .status(500)
       .json({ error: "Error al actualizar visita", details: error.message });
-  }
-});
-
-/**
- * GET /api/visitas/disponibilidad?fecha=YYYY-MM-DD - Consultar disponibilidad
- */
-router.get(
-  "/disponibilidad",
-  [query("fecha").isISO8601().withMessage("Fecha inválida")],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req);
-      if (!errors.isEmpty()) {
-        return res.status(400).json({
-          error: "Parámetros inválidos",
-          detalles: errors.array(),
-        });
-      }
-
-      const fecha = new Date(req.query.fecha);
-
-      const inicioDelDia = new Date(fecha);
-      inicioDelDia.setHours(0, 0, 0, 0);
-
-      const finDelDia = new Date(fecha);
-      finDelDia.setHours(23, 59, 59, 999);
-
-      const visitasDelDia = await Visita.find({
-        fecha: { $gte: inicioDelDia, $lte: finDelDia },
-        estado: { $ne: "cancelada" },
-      });
-
-      const aforoReservado = visitasDelDia.reduce(
-        (sum, v) => sum + v.numVisitantes,
-        0
-      );
-
-      res.json({
-        aforoMaximo: AFORO_MAXIMO,
-        reservado: aforoReservado,
-        disponible: AFORO_MAXIMO - aforoReservado,
-      });
-    } catch (error) {
-      console.error("Error al consultar disponibilidad:", error);
-      res.status(500).json({ error: "Error interno del servidor" });
-    }
-  }
-);
-
-/**
- * GET /api/visitas/codigo/:codigo - Obtener visita por código
- */
-router.get("/codigo/:codigo", async (req, res) => {
-  try {
-    const { codigo } = req.params;
-
-    const visita = await Visita.findOne({ codigoVisita: codigo });
-
-    if (!visita) {
-      return res.status(404).json({ error: "Visita no encontrada" });
-    }
-
-    res.json({
-      visita: {
-        codigoVisita: visita.codigoVisita,
-        dia: visita.dia,
-        fecha: visita.fecha,
-        hora: visita.hora,
-        institucion: visita.institucion,
-        numVisitantes: visita.numVisitantes,
-        arboretum: visita.arboretum,
-        contacto: visita.contacto,
-        estado: visita.estado,
-      },
-    });
-  } catch (error) {
-    console.error("Error al obtener visita por código:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
