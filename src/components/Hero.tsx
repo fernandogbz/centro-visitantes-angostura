@@ -4,31 +4,58 @@ import { ArrowRight } from "lucide-react";
 
 const Hero = () => {
   return (
-    <section className="relative h-[500px] md:h-[600px] flex items-center justify-center overflow-hidden">
-      {/* Background Image Placeholder */}
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-secondary/90">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1511497584788-876760111969?w=1600')] bg-cover bg-center opacity-30"></div>
+    <section className="relative h-[600px] md:h-[700px] flex items-center overflow-hidden">
+      {/* Background Video with Dark Overlay */}
+      <div className="absolute inset-0">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        >
+          <source src="/video-angostura.mp4" type="video/mp4" />
+        </video>
+        {/* Dark gradient overlay for better text contrast */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/60"></div>
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 text-center">
-        <h1 className="font-montserrat font-bold text-4xl md:text-6xl text-white mb-6 drop-shadow-lg">
-          Bienvenido al Centro de Visitantes
-          <br />
-          <span className="text-secondary-foreground">Angostura del Biobío</span>
-        </h1>
-        <p className="text-xl md:text-2xl text-white/95 mb-8 max-w-3xl mx-auto drop-shadow">
-          Descubre la biodiversidad y la historia del río Biobío en un entorno natural único
-        </p>
-        <Link to="/reservar">
-          <Button
-            size="lg"
-            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground font-montserrat font-semibold text-lg px-8 py-6 rounded-lg shadow-lg hover:shadow-xl transition-all hover:scale-105"
-          >
-            Agenda tu Visita
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </Link>
+      <div className="relative z-10 container mx-auto px-4 md:px-8 max-w-7xl">
+        <div className="max-w-2xl">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-8">
+            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+            <span className="text-white/90 text-sm font-medium">
+              Descubre la Región del Biobío
+            </span>
+          </div>
+
+          {/* Title with highlighted word */}
+          <h1 className="font-montserrat font-bold text-4xl md:text-6xl text-white mb-6 leading-tight">
+            <span className="text-orange-500">Bienvenido</span> al Centro de
+            Visitantes
+            <br />
+            Angostura del Biobío
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-lg md:text-xl text-gray-300 mb-10 max-w-xl leading-relaxed">
+            Descubre la biodiversidad y la historia del río Biobío en un entorno
+            natural único
+          </p>
+
+          {/* CTA Button */}
+          <Link to="/reservar">
+            <Button
+              size="lg"
+              className="bg-orange-500 hover:bg-orange-600 text-white font-montserrat font-semibold text-base md:text-lg px-8 py-6 rounded-lg shadow-2xl hover:shadow-orange-500/50 transition-all hover:scale-105 border-0"
+            >
+              Agenda tu Visita
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </Link>
+        </div>
       </div>
     </section>
   );

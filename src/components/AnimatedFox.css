@@ -1,0 +1,12 @@
+/* Contenedor simplificado - el posicionamiento se maneja con inline styles */
+.animated-fox-container {
+  /* Estilos mínimos, todo se controla desde el componente */
+}
+
+/* En móviles, ajustamos el tamaño */
+@media (max-width: 768px) {
+  .animated-fox-container img {
+    width: 100px !important;
+    height: 100px !important;
+  }
+}

@@ -1,0 +1,33 @@
+.fox-sprite {
+  width: var(--fox-size);
+  height: var(--fox-size);
+  background-image: url("/fox-sprite.png");
+  background-repeat: no-repeat;
+  /* 500% porque son 5 columnas, 200% porque son 2 filas */
+  background-size: 500% 200%;
+  /* Iniciamos en la primera columna */
+  background-position: 0% 0%;
+  /* steps(5) porque son 5 frames en la animación */
+  animation: playHorizontalRow var(--anim-duration) steps(5) infinite;
+  image-rendering: pixelated;
+}
+
+.fox-sprite.idle {
+  /* Fila superior (0%) */
+  background-position-y: 0%;
+}
+
+.fox-sprite.walk {
+  /* Fila inferior (100%) */
+  background-position-y: 100%;
+}
+
+@keyframes playHorizontalRow {
+  from {
+    background-position-x: 0%;
+  }
+  to {
+    /* Movemos a través de las 5 columnas */
+    background-position-x: 100%;
+  }
+}
