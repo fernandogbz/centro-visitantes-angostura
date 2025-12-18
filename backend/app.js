@@ -38,7 +38,8 @@ app.use("/api/", limiter);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Rutas
+// Rutas}
+app.use('/api/auth', authRoutes);
 app.use("/api/visitas", visitasRoutes);
 app.use("/api/disponibilidad", disponibilidadRoutes); // ← DEBE ESTAR AQUÍ
 

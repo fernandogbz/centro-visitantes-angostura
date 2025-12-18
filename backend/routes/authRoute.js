@@ -1,10 +1,11 @@
-const express = require('express');
+import express from 'express';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken'
+
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 
 //Hash para el passkey (se genera una sola vez)
-const ADMIN_PASSKEY_HASH = process.env.ADMIN_PASSKEY_HASH || '$2a$10$7QjE6m1b0rYFz3v5bYc8EuX9Fh8jK1JYpZ6G8u1OqFz9JxX1YzE5K'; 
+const ADMIN_PASSKEY_HASH = process.env.ADMIN_PASSKEY_HASH || '$2b$10$4Qg4W0IuBHEpU9CRYazqJOad0cY.YNEO2RnM9MhOtIZtXD8gr0VWu'; 
 
 //POST /api/auth/login
 router.post('/login', async (req, res)=>{
@@ -18,6 +19,8 @@ router.post('/login', async (req, res)=>{
         }
 
         //Compara el passkey con el hash almacenado
+        const isValid = await bcrypt.compare(passkey, ADMIN_PASSKEY_HASH);
+
         if (!isValid){
             //Genera un log del intento fallido
             console.log(` Intento de login fallido desde IP: ${req.ip} a las ${new Date().toISOString()}`)
@@ -53,7 +56,7 @@ router.post('/login', async (req, res)=>{
 });
 
 // GET /api/auth/verify - Verifica que el token es valido 
-router.get('/verify', (req, res) =>{
+router.get('/verify', async (req, res) =>{
     try{
         const authHeader = req.headers.authorization;
         if(!authHeader || !authHeader.startsWith('Bearer ')){
@@ -67,7 +70,7 @@ router.get('/verify', (req, res) =>{
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         if(decoded.role !== 'admin') {
-            return res.status(401).json({
+            return res.status(403).json({
                 valid: false,
                 code: 'FORBIDDEN'
             });
@@ -83,7 +86,7 @@ router.get('/verify', (req, res) =>{
                 code: 'TOKEN_EXPIRED'
             });
         }
-        res.status(4001).json({
+        res.status(401).json({
             valid: false,
             code: 'INVALID_TOKEN'
         });

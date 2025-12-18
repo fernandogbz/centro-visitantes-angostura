@@ -1,7 +1,6 @@
-const jwt = require('jsonwebtoken');
-const { defaultClientMainFields } = require('vite');
+import jwt from 'jsonwebtoken';
 
-const verificarAdmin = ( req, res, next) => {
+export const verificarAdmin = ( req, res, next) => {
     try{
         const authHeader = req.headers.authorization;
 
@@ -11,6 +10,17 @@ const verificarAdmin = ( req, res, next) => {
                 code : 'NO_TOKEN'
             })
             
+        }
+
+        const token = authHeader.split(' ')[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        //Validacion de Admin || !Admin
+        if (decoded.role !== 'admin'){
+            return res.status(403).json({
+                error: 'Acceso denegado',
+                code : 'FORBIDDEN'
+            })
         }
 
         req.user = decoded;
