@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { defaultClientMainFields } = require('vite');
 
 const verificarAdmin = ( req, res, next) => {
     try{
@@ -29,4 +30,4 @@ const verificarAdmin = ( req, res, next) => {
     }
 };
 
-module.exports = { verificarAdmin};
+export default verificarAdmin;
