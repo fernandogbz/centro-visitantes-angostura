@@ -80,9 +80,10 @@ import {
   VisitaDetalle,
   CrearVisitaData,
 } from "@/services/api";
+import { authService } from '@/services/auth'; //
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { decryptKey } from "@/lib/utils";
+;
 
 const MESES = [
   "Enero",
@@ -145,7 +146,20 @@ const Dashboard = () => {
   const [modalEdicion, setModalEdicion] = useState(false);
   const [visitaSeleccionada, setVisitaSeleccionada] =
     useState<VisitaDetalle | null>(null);
-  const [formEdicion, setFormEdicion] = useState<any>({});
+  
+  interface FormEdicion {
+    fecha: string;
+    hora: string;
+    institucion: string;
+    numVisitantes: number;
+    arboretum: string;
+    nombreContacto: string;
+    telefonoContacto: string;
+    comunaContacto: string;
+    correoContacto: string;
+  }
+  
+  const [formEdicion, setFormEdicion] = useState<Partial<FormEdicion>>({});
   const [hayCambiosSinGuardar, setHayCambiosSinGuardar] = useState(false);
   const [mostrarAlertaCambios, setMostrarAlertaCambios] = useState(false);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
@@ -157,22 +171,48 @@ const Dashboard = () => {
   const [refrescando, setRefrescando] = useState(false);
   const [tiempoTranscurrido, setTiempoTranscurrido] = useState(0);
 
-  // Verificar autenticación
+  // Verificar autenticación con JWT
   useEffect(() => {
-    const encryptedKey = window.localStorage.getItem("accessKey");
-    const accessKey = encryptedKey && decryptKey(encryptedKey);
+    const verificarAutenticacion = async () => {
+      console.log('🔍 Verificando autenticación JWT en Dashboard...');
+      
+      try {
+        const token = authService.getToken();
+        console.log('📌 Token encontrado:', token ? 'Sí' : 'No');
+        
+        if (!token) {
+          console.warn('⚠️ No hay token, redirigiendo...');
+          navigate("/");
+          return;
+        }
 
-    if (accessKey !== import.meta.env.VITE_ADMIN_PASSKEY) {
-      navigate("/");
-    }
+        // Verificar si expiró localmente
+        if (authService.isTokenExpired()) {
+          console.warn('⚠️ Token expirado localmente, redirigiendo...');
+          authService.logout();
+          navigate("/");
+          return;
+        }
+
+        console.log('✅ Token válido, usuario autenticado');
+      } catch (error) {
+        console.error('❌ Error verificando token:', error);
+        authService.logout();
+        navigate("/");
+      }
+    };
+
+    verificarAutenticacion();
   }, [navigate]);
 
   useEffect(() => {
     cargarEstadisticas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesSeleccionado, anoSeleccionado]);
 
   useEffect(() => {
     cargarProximasVisitas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-actualización cada 5 minutos
@@ -184,6 +224,7 @@ const Dashboard = () => {
     }, 5 * 60 * 1000); // 5 minutos
 
     return () => clearInterval(intervalo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesSeleccionado, anoSeleccionado]);
 
   // Actualizar el tiempo transcurrido cada minuto
@@ -200,7 +241,8 @@ const Dashboard = () => {
   }, [ultimaActualizacion]);
 
   const handleLogout = () => {
-    localStorage.removeItem("accessKey");
+    console.log('👋 Cerrando sesión...');
+    authService.logout();
     navigate("/");
   };
 
@@ -321,8 +363,8 @@ const Dashboard = () => {
     setModalEdicion(true);
   };
 
-  const handleFormChange = (campo: string, valor: any) => {
-    setFormEdicion((prev: any) => ({ ...prev, [campo]: valor }));
+  const handleFormChange = (campo: string, valor: string | number) => {
+    setFormEdicion((prev) => ({ ...prev, [campo]: valor }));
     setHayCambiosSinGuardar(true);
   };
 
@@ -392,12 +434,16 @@ const Dashboard = () => {
           : Promise.resolve(),
       ]);
       setUltimaActualizacion(new Date());
-    } catch (error: any) {
+    } catch (error) {
       console.error("❌ Error al guardar:", error);
+      const errorMessage = error && typeof error === 'object' && 'response' in error && 
+        error.response && typeof error.response === 'object' && 'data' in error.response &&
+        error.response.data && typeof error.response.data === 'object' && 'error' in error.response.data
+        ? String(error.response.data.error)
+        : "No se pudo actualizar la visita";
       toast({
         title: "Error",
-        description:
-          error.response?.data?.error || "No se pudo actualizar la visita",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -424,7 +470,7 @@ const Dashboard = () => {
           : Promise.resolve(),
       ]);
       setUltimaActualizacion(new Date());
-    } catch (error: any) {
+    } catch (error) {
       console.error("❌ Error al cambiar estado:", error);
       toast({
         title: "Error",
@@ -507,7 +553,7 @@ const Dashboard = () => {
     : 0;
 
   // Tooltip personalizado
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-4 border-2 border-blue-600 rounded-lg shadow-xl">
@@ -519,7 +565,7 @@ const Dashboard = () => {
     return null;
   };
 
-  const CustomPieTooltip = ({ active, payload }: any) => {
+  const CustomPieTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white p-4 border-2 border-green-600 rounded-lg shadow-xl">
@@ -1582,7 +1628,7 @@ const Dashboard = () => {
                 </div>
               </div>
               <div className="border-t pt-4">
-                <Label className="text-sm font-semibold text-gray-600 mb-2 block">
+                <Label className="text-sm font-semibold mb-2 block">
                   Institución
                 </Label>
                 <p className="text-gray-900">
@@ -1590,13 +1636,13 @@ const Dashboard = () => {
                 </p>
               </div>
               <div className="border-t pt-4">
-                <Label className="text-sm font-semibold text-gray-600 mb-2 block">
+                <Label className="text-sm font-semibold mb-2 block">
                   Visita al Arboreto
                 </Label>
                 <p className="text-gray-900">{visitaSeleccionada.arboretum}</p>
               </div>
               <div className="border-t pt-4">
-                <Label className="text-sm font-semibold text-gray-600 mb-3 block">
+                <Label className="text-sm font-semibold mb-3 block">
                   Datos de Contacto
                 </Label>
                 <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">

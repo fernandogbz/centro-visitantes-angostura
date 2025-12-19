@@ -1,4 +1,4 @@
-    import { useState } from 'react';
+import { useState } from 'react';
     import { useNavigate } from 'react-router-dom';
     import { authService } from '@/services/auth';
     import {
@@ -31,18 +31,30 @@
         setIsLoading(true);
 
         try {
+        console.log('🔐 Intentando login...');
         const response = await authService.login(passkey);
+        console.log('📥 Respuesta:', response);
 
         if (response.success) {
-            console.log('✅ Login exitoso');
+            console.log('✅ Login exitoso, token guardado');
+            console.log('📍 Redirigiendo a /admin...');
+            
+            // Primero cerrar el modal
+            setPasskey('');
+            setError('');
             onClose();
-            navigate('/dashboard');
+            
+            // Esperar un tick antes de navegar
+            setTimeout(() => {
+            navigate('/admin');
+            console.log('✅ Navegación ejecutada');
+            }, 100);
         } else {
             setError('Credenciales inválidas');
         }
         } catch (err: any) {
         console.error('❌ Error en login:', err);
-
+        
         if (err.response?.data?.code === 'INVALID_PASSKEY') {
             setError('Passkey incorrecto. Intenta nuevamente.');
         } else if (err.response?.data?.code === 'MISSING_PASSKEY') {
