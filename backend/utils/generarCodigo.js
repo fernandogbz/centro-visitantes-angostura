@@ -1,30 +1,46 @@
 import Visita from '../models/Visita.js';
 
 /**
- * Genera un código único de visita en formato VIS-YYYYMMDD-NNN
- * @param {Date} fecha - Fecha de la visita
- * @returns {Promise<string>} Código de visita generado
+ * Genera un código único de visita con formato: VIS-YYYYMMDD-XXX
+ * @returns {Promise<string>} Código único generado
  */
-export const generarCodigoVisita = async (fecha) => {
-  // Formatear fecha como YYYYMMDD
-  const year = fecha.getFullYear();
-  const month = String(fecha.getMonth() + 1).padStart(2, '0');
-  const day = String(fecha.getDate()).padStart(2, '0');
-  const yyyymmdd = `${year}${month}${day}`;
+export const generarCodigoVisita = async () => {
+  const hoy = new Date();
+  const year = hoy.getFullYear();
+  const month = String(hoy.getMonth() + 1).padStart(2, '0');
+  const day = String(hoy.getDate()).padStart(2, '0');
+  const fechaBase = `${year}${month}${day}`;
 
-  // Contar visitas existentes para ese día
-  const inicioDelDia = new Date(fecha);
-  inicioDelDia.setHours(0, 0, 0, 0);
+  // Buscar el último código del día
+  const ultimaVisita = await Visita.findOne({
+    codigoVisita: { $regex: `^VIS-${fechaBase}-` }
+  })
+    .sort({ codigoVisita: -1 })
+    .select('codigoVisita')
+    .lean();
+
+  let secuencia = 1;
+
+  if (ultimaVisita) {
+    // Extraer número de secuencia del último código
+    const match = ultimaVisita.codigoVisita.match(/-(\d{3})$/);
+    if (match) {
+      secuencia = parseInt(match[1], 10) + 1;
+    }
+  }
+
+  const secuenciaStr = String(secuencia).padStart(3, '0');
+  const nuevoCodigo = `VIS-${fechaBase}-${secuenciaStr}`;
+
+  // Verificar que no exista (por seguridad)
+  const existe = await Visita.findOne({ codigoVisita: nuevoCodigo });
   
-  const finDelDia = new Date(fecha);
-  finDelDia.setHours(23, 59, 59, 999);
+  if (existe) {
+    // Si existe, incrementar secuencia recursivamente
+    console.warn(`⚠️ Código duplicado detectado: ${nuevoCodigo}, generando nuevo...`);
+    return generarCodigoVisita();
+  }
 
-  const count = await Visita.countDocuments({
-    fecha: { $gte: inicioDelDia, $lte: finDelDia }
-  });
-
-  // Generar secuencia con padding de 3 dígitos
-  const secuencia = String(count + 1).padStart(3, '0');
-
-  return `VIS-${yyyymmdd}-${secuencia}`;
+  console.log(`✅ Código único generado: ${nuevoCodigo}`);
+  return nuevoCodigo;
 };
