@@ -1,4 +1,3 @@
-import { log } from 'console';
 import api from './api';
 
 interface LoginResponse {
@@ -16,7 +15,7 @@ interface VerifyResponse {
 export const authService = {
     // Inicia sesion para obtener el token JWT
     async login(passkey: string): Promise<LoginResponse> {
-        const { data } = await api.post('/auth/login', {passkey});
+        const { data } = await api.post<LoginResponse>('/auth/login', {passkey});
 
         //Guarda token en el localStorage
         if (data.success && data.token) {

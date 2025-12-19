@@ -1,4 +1,5 @@
 import axios from "axios";
+import { authService } from "./auth";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
@@ -159,22 +160,53 @@ export const visitasAPI = {
   },
 };
 
-// Manejo de errores centralizado
-api.interceptors.response.use(
-  (response) => response,
+/* VALIDACION DE TOKENS Y MANEJO DE ERRORES */
+
+//Interceptor de tokens
+api.interceptors.request.use(
+  (config) => {
+  const token = authService.getToken();
+
+  if(token){
+    config.headers.Authorization = `Bearer ${token}`
+  }
+
+  return config;
+  },
   (error) => {
-    if (error.response) {
-      // Error de la API
-      console.error("Error API:", error.response.data);
-      throw new Error(error.response.data.error || "Error en la petición");
+    return Promise.reject(error);
+  }
+);
+
+//Intercepta el response - Maneja errores de autenticacion
+api.interceptors.response.use((response) => response,(error) => {
+  if (error.response) {
+    const { status, data } = error.response;
+
+    // Manejo token expirado
+    if(status === 401 && (data.code === 'TOKEN_EXPIRED' || data.code === 'INVALID_TOKEN' ||
+      data.code === 'NO_TOKEN')) {
+        console.warn('Tokenn incalido o expirado, redirigiendo al login...');
+        authService.logout();
+        window.location.href = '/'
+      }
+
+      //Acceso denegado ( no ea administrador)
+      if (status === 403 && data.code === 'FORBIDDEN') {
+        console.error('Acceso denegado');
+        authService.logout();
+        window.location.href = '/'
+      }
+
+      //Error de la API
+        console.error('Error API', data);
+        throw new Error(data.error || 'Error en la pertición');
     } else if (error.request) {
-      // No hubo respuesta
-      console.error("Sin respuesta del servidor");
-      throw new Error("No se pudo conectar con el servidor");
+      console.error('Sin respuesat del servidor');
+      throw  new Error('No se pudo conectar con el servidor')
     } else {
-      // Error al configurar la petición
-      console.error("Error:", error.message);
-      throw new Error("Error al realizar la petición");
+      console.error('Error: ', error.message);
+      throw new Error('Error al realizar la peticion')
     }
   }
 );
