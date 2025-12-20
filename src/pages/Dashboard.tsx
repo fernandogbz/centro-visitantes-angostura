@@ -353,7 +353,8 @@ const Dashboard = () => {
       hora: visita.hora,
       institucion: visita.institucion || "",
       numVisitantes: visita.numVisitantes,
-      arboretum: visita.arboretum,
+      // Normalizar el valor de arboretum
+      arboretum: visita.arboretum === "Sí" || visita.arboretum === "Si" ? "Si" : "No",
       nombreContacto: visita.contacto?.nombre || "",
       telefonoContacto: visita.contacto?.telefono || "",
       comunaContacto: visita.contacto?.comuna || "",
