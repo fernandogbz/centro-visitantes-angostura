@@ -368,4 +368,3 @@ Consulta el aforo disponible para una fecha.
 - Verificación de capacidad por horario (30 visitantes/franja)
 - Validación de días bloqueados (lunes + feriados)
 - Generación de código único con verificación de duplicados
-
